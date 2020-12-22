@@ -1,6 +1,13 @@
 # L2M_GridWorld
 Life long learning in Grid world setting
+Based on the Mini gridworld Environment from the following post:
+https://github.com/maximecb/gym-minigrid
 
+First run:
+Run this command:
+python ./manual_control.py --env MiniGrid-FourRooms-v0 --num_envs 5
+
+----------------------------
 
 # Minimalistic Gridworld Environment (MiniGrid)
 
