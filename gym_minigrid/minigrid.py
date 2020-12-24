@@ -676,7 +676,8 @@ class MiniGridEnv(gym.Env):
         max_steps=100,
         see_through_walls=False,
         seed=1337,
-        agent_view_size=7
+        agent_view_size=7,
+        goal_type='ball',
     ):
         # Can't set both grid_size and width/height
         if grid_size:
@@ -686,7 +687,7 @@ class MiniGridEnv(gym.Env):
 
         # Action enumeration for this environment
         self.actions = MiniGridEnv.Actions
-
+        self.goal_type = goal_type
         # Actions are discrete integer values
         self.action_space = spaces.Discrete(len(self.actions))
 
@@ -845,7 +846,8 @@ class MiniGridEnv(gym.Env):
         Compute the reward to be given upon success
         """
 
-        return 1 - 0.9 * (self.step_count / self.max_steps)
+        return 1
+        #return 1 - 0.9 * (self.step_count / self.max_steps)
 
     def _rand_int(self, low, high):
         """
@@ -1147,11 +1149,11 @@ class MiniGridEnv(gym.Env):
         elif action == self.actions.forward:
             if fwd_cell == None or fwd_cell.can_overlap():
                 self.agent_pos = fwd_pos
-            if fwd_cell != None and fwd_cell.type == 'goal':
+            '''if fwd_cell != None and fwd_cell.type == 'goal':
                 done = True
                 reward = self._reward()
             if fwd_cell != None and fwd_cell.type == 'lava':
-                done = True
+                done = True'''
 
         # Pick up an object
         elif action == self.actions.pickup:
@@ -1179,7 +1181,13 @@ class MiniGridEnv(gym.Env):
 
         else:
             assert False, "unknown action"
-
+        fwd_pos = self.front_pos
+        fwd_cell = self.grid.get(*fwd_pos)
+        if fwd_cell != None and fwd_cell.type == self.goal_type:
+            done = True
+            reward = 1
+        else:
+            reward = 0
         if self.step_count >= self.max_steps:
             done = True
 
@@ -1235,7 +1243,7 @@ class MiniGridEnv(gym.Env):
         # - an image (partially observable view of the environment)
         # - the agent's direction/orientation (acting as a compass)
         # - a textual mission string (instructions for the agent)
-        obs = image
+        obs = {'image': image, 'pos': self.agent_pos}
 
 
         return obs
