@@ -28,10 +28,8 @@ def reset():
 
 def step(action, index=0):
     obs, reward, done, info = env.step(action)
-    print("current location:", env.agent_pos)
-    print("current orientation", env.agent_dir)
     print('step=%s, reward=%.2f' % (env.step_count, reward))
-    obs = np.append(obs, index)
+    obs['house'] = index
     print('obs:', obs)
     if done:
         print('done!')
@@ -105,39 +103,6 @@ parser.add_argument(
     help="number of envs",
     default=5
 )
-parser.add_argument(
-    '--num_episodes',
-    type=int,
-    help="number of episodes in value iteration",
-    default=1000
-)
-parser.add_argument(
-    '--num_steps',
-    type=int,
-    help="number of steps in each episodes in value iteration",
-    default=1000
-)
-
-parser.add_argument(
-    '--num_roomtypes',
-    type=int,
-    help="number of room types",
-    default=5
-)
-parser.add_argument(
-    '--num_rooms',
-    type=int,
-    help="number of rooms in each house",
-    default=4
-)
-parser.add_argument(
-    '--num_houses',
-    type=int,
-    help="number of houses",
-    default=4
-)
-
-
 args = parser.parse_args()
 env_set=[]
 
@@ -145,27 +110,6 @@ for j in range(args.num_envs):
     env = gym.make(args.env)
     env_set.append(env)
 random.shuffle(env_set)
-
-#table 1: Map from house id and room location to room type. (0 menas “I don’t know yet”):
- #houseToRoomtype[0][0] denotes room types of room 0 in house 0. if value is 0 then it means we don't know yet
-houseRoomToType = np.zeros((args.num_houses, args.num_rooms))   
-#table 2: Map from (nothing) to room type probability. experience we have collected after we wander inside houses
-#initially we just assume that all rooms can be any kind of room. we will use Dirichlet distribution.
-#we set alpha to be (1,1,1,....1). So any kinds of distribution will be uniformly possible 
-RoomToTypeProb = np.ones((args.num_rooms, args.num_roomtypes)) 
-#table 3: Map from current house location to object at that location (can include “empty” but also “I don’t know yet”)
-#houseLocToObject[0][0] denotes location 0,0.	if value is 0 then it means we don't know yet
-houseLocToObject = np.ones((env.grid.width, env.grid.height))
-print("size of the env", env.grid.width, " X ", env.grid.height)
-
-
-
-
-'''When an agent is born, it sets table 1 to “I don’t know” everywhere 
-and it initializes the counts in table 2 and table 4 to be some small number (epsilon = 0.5?)
-'''
-
-
 
 for j in range(args.num_envs):
     env = env_set[j]
