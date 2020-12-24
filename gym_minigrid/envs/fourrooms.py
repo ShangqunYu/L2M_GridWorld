@@ -16,8 +16,10 @@ class FourRoomsEnv(MiniGridEnv):
         self._agent_default_pos = agent_pos
         self._goal_default_pos = goal_pos
         self.fixed_room_dist = fixed_room_dist
-
-        super().__init__(grid_size=13, max_steps=100,agent_view_size=3)
+        goal_typeset = ['ball','box1', 'box2']
+        goal_index = np.random.choice(3)
+        self.room_set = []
+        super().__init__(grid_size=13, max_steps=100,agent_view_size=3, goal_type=goal_typeset[goal_index])
         #print(1)
         self.observation_space = spaces.Box(
             low=0,
@@ -118,13 +120,20 @@ class FourRoomsEnv(MiniGridEnv):
             if np.random.random() > 0.1:
                 self.put_obj(Box2(), 9, 9)
         else:
-            p = [[1,1],[1,7],[7,1],[7,7]]
-            index = np.random.choice(4,4, p = [0.4, 0.3, 0.2, 0.1],replace=False)
+            tops = [[1,1],[1,7],[7,1],[7,7]]
+            p = [[0.7, 0.1, 0.2], [0.2, 0.7, 0.1], [0.1, 0.2, 0.7], [0.4, 0.3, 0.3]]
 
-            self.Room1(p[index[0]][0], p[index[0]][1])
-            self.Room2(p[index[1]][0], p[index[1]][1])
-            self.Room3(p[index[2]][0], p[index[2]][1])
-            self.Room4(p[index[3]][0], p[index[3]][1])
+            for i in range(4):
+                top_i = tops[i]
+                p_i = p[i]
+                room_i = np.random.choice(3, p=p[i])
+                if room_i == 0:
+                    self.Room2(top_i[0], top_i[1])
+                elif room_i == 1:
+                    self.Room3(top_i[0], top_i[1])
+                else:
+                    self.Room4(top_i[0], top_i[1])
+                self.room_set.append(room_i)
         self.mission = 'Reach the goal'
     def Room1(self, top_x=1, top_y=1):
         if np.random.random() > 0.3:
@@ -141,39 +150,51 @@ class FourRoomsEnv(MiniGridEnv):
             self.put_obj(Box(self.color2), top_x, top_y+4)
     def Room2(self, top_x=7, top_y=1):
         if np.random.random() > 0.2:
-            if np.random.random() > 0.6:
+            '''if np.random.random() > 0.6:
                 self.put_obj(Ball(), top_x+3, top_y+1)
             else:
-                self.put_obj(Ball(), top_x+3, top_y+3)
-        if np.random.random() > 0.2:
-            if np.random.random() > 0.7:
+                self.put_obj(Ball(), top_x+3, top_y+3)'''
+            self.put_obj(Ball(), top_x + 4, top_y + 1)
+        if np.random.random() > 0.8:
+            '''if np.random.random() > 0.7:
                 self.put_obj(Box(self.color1), top_x, top_y+4)
             else:
-                self.put_obj(Box(self.color1), top_x+2, top_y+4)
-
+                self.put_obj(Box(self.color1), top_x+2, top_y+4)'''
+            self.put_obj(Box(self.color1), top_x , top_y + 1)
     def Room3(self, top_x=1, top_y=7):
-        if np.random.random() > 0.1:
-            if np.random.random() > 0.8:
+        if np.random.random() > 0.8:
+            '''if np.random.random() > 0.8:
                 self.put_obj(Ball(), top_x+3, top_y+3)
             else:
-                self.put_obj(Ball(), top_x+1, top_y+3)
-        if np.random.random() > 0.1:
-            if np.random.random() > 0.7:
+                self.put_obj(Ball(), top_x+1, top_y+3)'''
+            self.put_obj(Ball(), top_x + 4, top_y + 4)
+        if np.random.random() > 0.2:
+            '''if np.random.random() > 0.7:
                 self.put_obj(Box(self.color2), top_x+4, top_y)
             else:
-                self.put_obj(Box(self.color2), top_x+4, top_y+2)
-
+                self.put_obj(Box(self.color2), top_x+4, top_y+2)'''
+            self.put_obj(Box(self.color2), top_x + 2, top_y + 2)
     def Room4(self, top_x=7, top_y=7):
-        if np.random.random() > 0.1:
-            if np.random.random() > 0.5:
+        if np.random.random() > 0.2:
+            '''if np.random.random() > 0.5:
                 self.put_obj(Box(self.color1), top_x+1, top_y+1)
             else:
-                self.put_obj(Box(self.color1), top_x+2, top_y)
-        if np.random.random() > 0.1:
-            self.put_obj(Box(self.color2), top_x+2, top_y+2)
+                self.put_obj(Box(self.color1), top_x+2, top_y)'''
+            self.put_obj(Box(self.color1), top_x + 4, top_y)
+        if np.random.random() > 0.8:
+            self.put_obj(Box(self.color2), top_x+1, top_y+4)
     def step(self, action):
         obs, reward, done, info = MiniGridEnv.step(self, action)
-        obs = np.array(obs).flatten()
+        obs['image'] = np.array(obs['image']).flatten()
+        obs['pos'] = np.array(obs['pos']).flatten()
+        if obs['pos'][0] < 6 and obs['pos'][1] < 6:
+            obs['room'] = self.room_set[0]
+        elif obs['pos'][0] < 6 and obs['pos'][1] > 6:
+            obs['room'] = self.room_set[1]
+        elif obs['pos'][0] > 6 and obs['pos'][1] < 6:
+            obs['room'] = self.room_set[2]
+        else:
+            obs['room'] = self.room_set[3]
         #print('o:',obs)
         return obs, reward, done, info
 
