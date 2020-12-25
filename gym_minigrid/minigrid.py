@@ -687,7 +687,7 @@ class MiniGridEnv(gym.Env):
 
         # Action enumeration for this environment
         self.actions = MiniGridEnv.Actions
-        self.goal_type = goal_type
+
         # Actions are discrete integer values
         self.action_space = spaces.Discrete(len(self.actions))
 
@@ -736,7 +736,10 @@ class MiniGridEnv(gym.Env):
         # To keep the same grid for each episode, call env.seed() with
         # the same seed before calling env.reset()
         self._gen_grid(self.width, self.height)
-
+        if len(self.goal_set) == 0:
+            self._gen_grid(self.width, self.height)
+        index = np.random.choice(len(self.goal_set))
+        self.goal_type = self.goal_set[index]
         # These fields should be defined by _gen_grid
         assert self.agent_pos is not None
         assert self.agent_dir is not None
