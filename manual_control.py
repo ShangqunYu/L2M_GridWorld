@@ -26,6 +26,13 @@ def reset():
 
     redraw(obs)
 
+def reset2():
+    obs = env.reset2()
+    if hasattr(env, 'mission'):
+        print('Mission: %s' % env.mission)
+        window.set_caption(env.mission)
+    redraw(obs)
+
 def step(action, index=0):
     obs, reward, done, info = env.step(action)
     print('step=%s, reward=%.2f' % (env.step_count, reward))
