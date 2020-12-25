@@ -143,7 +143,7 @@ parser.add_argument(
     '--K',
     type=int,
     help="number of Mdps",
-    default=5
+    default=3
 )
 args = parser.parse_args()
 env_set=[]
@@ -174,7 +174,7 @@ for j in range(args.num_envs):
 '''
 #table 1: Map from house id and room location to room type. (-1 menas “I don’t know yet”):
  #houseToRoomtype[0][0] denotes room types of room 0 in house 0. if value is -1 then it means we don't know yet
-houseRoomToType = np.ones((args.num_envs, args.num_rooms)) * -1
+houseRoomToType = np.ones((args.num_envs, args.num_rooms), dtype = np.int8) * -1
 #table 2: Map from (nothing) to room type probability. experience we have collected after we wander inside houses
 #initially we just assume that all rooms can be any kind of room. we will use Dirichlet distribution.
 #we set alpha to be (1,1,1,....1). So any kinds of distribution will be uniformly possible 
@@ -182,13 +182,19 @@ RoomToTypeProb = np.ones((args.num_rooms, args.num_roomtypes))
 #table 3: Map from current house location to object at that location (can include “empty” but also “I don’t know yet”)
 #houseLocToObject[0][0] denotes location 0,0.   if value is 0 then it means we don't know yet
 houseLocToObject = np.zeros((env.grid.width, env.grid.height))
-#Map from room type to object type probability.
-roomtypeToObject = np.ones((args.num_roomtypes, args.num_objects ))
+#Map from room type to object type probability.(times it doesn't show up vs how many times it shows up )
+roomtypeToObject = np.ones((args.num_roomtypes, args.num_objects, 2))
 
 #test
 RoomToTypeProb[0,0] = 10
-RoomToTypeProb[1,1] =10
+RoomToTypeProb[1,1] = 10
 RoomToTypeProb[2,2] = 10
+roomtypeToObject[0,0,0] = 100
+roomtypeToObject[0,1,0] = 100
+roomtypeToObject[0,2,0] = 100
+roomtypeToObject[1,0,1] = 100
+roomtypeToObject[1,1,1] = 100
+roomtypeToObject[1,2,1] = 100
 
 #each house we visit several times:
 for ith_visit in range(args.num_visitsPerHouse):
@@ -208,15 +214,32 @@ for ith_visit in range(args.num_visitsPerHouse):
         
         #once we get into a house, we create 10 mdps, 10 imagined environment based on past experience, 
         for ith_mdp in range(args.K):
-            #find out what we know about the room layout for this house, 0 means we don't know for a particular room
+            #find out what we know about the room layout for this house, -1 means we don't know for a particular room
             rooms = np.copy(houseRoomToType[ith_house])
 
             for ith_room in range(len(rooms)):
                 #if we don't know what kind of room the ith_room is, we take a guess based on the past experience
+                #if we know what room it is, no need to take a guess.
                 if rooms[ith_room] == -1:
                     prob = np.random.dirichlet(alpha=RoomToTypeProb[ith_room])
                     rooms[ith_room] = np.random.choice(args.num_roomtypes, p=prob)
                     print("my guess for room ", ith_room, "is :", rooms[ith_room])
+            #after we know/guess what room type is for each room, we need to guess what kind of objects in each room
+            objects_in_rooms = np.zeros((args.num_rooms, args.num_objects))
+            for ith_room in range(len(objects_in_rooms)):
+                for ith_object in range(len(objects_in_rooms[ith_room])):
+                    print("rooms[ith_room] ", rooms[ith_room])
+                    print(roomtypeToObject[rooms[ith_room], ith_object])
+                    
+                    prob = np.random.dirichlet(alpha=roomtypeToObject[rooms[ith_room], ith_object])
+                    print(prob)
+                    objects_in_rooms[ith_room, ith_object] = np.random.choice(2, p=prob)
+                print('room ', ith_room, ' is a type ', rooms[ith_room], ' room ', objects_in_rooms[ith_room])
+
+            print("answer:", objects_in_rooms)
+
+
+
 
 
 
