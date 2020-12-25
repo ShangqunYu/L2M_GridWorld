@@ -17,9 +17,9 @@ class FourRoomsEnv(MiniGridEnv):
         self._goal_default_pos = goal_pos
         self.fixed_room_dist = fixed_room_dist
         goal_typeset = ['ball','box1', 'box2']
-        goal_index = np.random.choice(3)
+
         self.room_set = []
-        super().__init__(grid_size=13, max_steps=100,agent_view_size=3, goal_type=goal_typeset[goal_index])
+        super().__init__(grid_size=13, max_steps=100,agent_view_size=3, goal_type=goal_typeset)
         #print(1)
         self.observation_space = spaces.Box(
             low=0,
@@ -31,7 +31,7 @@ class FourRoomsEnv(MiniGridEnv):
     def _gen_grid(self, width, height):
         # Create the grid
         self.grid = Grid(width, height)
-
+        self.goal_set = []
         # Generate the surrounding walls
         self.grid.horz_wall(0, 0)
         self.grid.horz_wall(0, height - 1)
@@ -155,12 +155,16 @@ class FourRoomsEnv(MiniGridEnv):
             else:
                 self.put_obj(Ball(), top_x+3, top_y+3)'''
             self.put_obj(Ball(), top_x + 4, top_y + 1)
+            if 'ball' not in self.goal_set:
+                self.goal_set.append('ball')
         if np.random.random() > 0.8:
             '''if np.random.random() > 0.7:
                 self.put_obj(Box(self.color1), top_x, top_y+4)
             else:
                 self.put_obj(Box(self.color1), top_x+2, top_y+4)'''
-            self.put_obj(Box(self.color1), top_x , top_y + 1)
+            self.put_obj(Box(), top_x , top_y + 1)
+            if 'box' not in self.goal_set:
+                self.goal_set.append('box')
     def Room3(self, top_x=1, top_y=7):
         if np.random.random() > 0.8:
             '''if np.random.random() > 0.8:
@@ -168,21 +172,29 @@ class FourRoomsEnv(MiniGridEnv):
             else:
                 self.put_obj(Ball(), top_x+1, top_y+3)'''
             self.put_obj(Ball(), top_x + 4, top_y + 4)
+            if 'ball' not in self.goal_set:
+                self.goal_set.append('ball')
         if np.random.random() > 0.2:
             '''if np.random.random() > 0.7:
                 self.put_obj(Box(self.color2), top_x+4, top_y)
             else:
                 self.put_obj(Box(self.color2), top_x+4, top_y+2)'''
-            self.put_obj(Box(self.color2), top_x + 2, top_y + 2)
+            self.put_obj(Box2(), top_x + 2, top_y + 2)
+            if 'box2' not in self.goal_set:
+                self.goal_set.append('box2')
     def Room4(self, top_x=7, top_y=7):
         if np.random.random() > 0.2:
             '''if np.random.random() > 0.5:
                 self.put_obj(Box(self.color1), top_x+1, top_y+1)
             else:
                 self.put_obj(Box(self.color1), top_x+2, top_y)'''
-            self.put_obj(Box(self.color1), top_x + 4, top_y)
+            self.put_obj(Box(), top_x + 4, top_y)
+            if 'box' not in self.goal_set:
+                self.goal_set.append('box')
         if np.random.random() > 0.8:
-            self.put_obj(Box(self.color2), top_x+1, top_y+4)
+            self.put_obj(Box2(), top_x+1, top_y+4)
+            if 'box2' not in self.goal_set:
+                self.goal_set.append('box2')
     def step(self, action):
         obs, reward, done, info = MiniGridEnv.step(self, action)
         obs['image'] = np.array(obs['image']).flatten()
