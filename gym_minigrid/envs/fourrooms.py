@@ -27,7 +27,26 @@ class FourRoomsEnv(MiniGridEnv):
             shape=(self.agent_view_size, self.agent_view_size),
             dtype='uint8'
         )
+    def reset2(self):
+        # Current position and direction of the agent
+        self.agent_pos = (7, 1)
+        self.grid.set(7, 1, None)
+        self.agent_dir = 1
 
+        # Generate a new random grid at the start of each episode
+        # To keep the same grid for each episode, call env.seed() with
+        # the same seed before calling env.reset()
+
+        start_cell = self.grid.get(*self.agent_pos)
+
+
+        # Step count since episode start
+        self.step_count = 0
+
+        # Return first observation
+        obs = self.gen_obs()
+        #print("obs:",obs)
+        return obs
     def _gen_grid(self, width, height):
         # Create the grid
         self.grid = Grid(width, height)
