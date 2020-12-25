@@ -73,20 +73,24 @@ class FourRoomsEnv(MiniGridEnv):
                 # Bottom wall and door
                 if i + 1 < 2:
                     self.grid.vert_wall(xR, yT, room_h)
-                    pos = (xR, self._rand_int(yT + 1, yB))
+                    #we fixed the positon of the doors
+                    pos = (xR, yT + 3)
+                    #pos = (xR, self._rand_int(yT + 1, yB))
                     self.grid.set(*pos, None)
 
                 # Bottom wall and door
                 if j + 1 < 2:
                     self.grid.horz_wall(xL, yB, room_w)
-                    pos = (self._rand_int(xL + 1, xR), yB)
+                    #we fixed the positon of the doors
+                    pos = (xL + 3, yB)
+                    #pos = (self._rand_int(xL + 1, xR), yB)
                     self.grid.set(*pos, None)
 
         # Randomize the player start position and orientation
         #if self._agent_default_pos is not None:
         self.agent_pos = (7,1)
         self.grid.set(7,1, None)
-        self.agent_dir = 1  # assuming random start direction
+        self.agent_dir = 1  
         #else:
         #    self.place_agent()
 
@@ -140,6 +144,7 @@ class FourRoomsEnv(MiniGridEnv):
                 self.put_obj(Box2(), 9, 9)
         else:
             tops = [[1,1],[1,7],[7,1],[7,7]]
+            # distribution of roomtype for each room. 
             p = [[0.7, 0.1, 0.2], [0.2, 0.7, 0.1], [0.1, 0.2, 0.7], [0.4, 0.3, 0.3]]
 
             for i in range(4):
@@ -154,6 +159,7 @@ class FourRoomsEnv(MiniGridEnv):
                     self.Room4(top_i[0], top_i[1])
                 self.room_set.append(room_i)
         self.mission = 'Reach the goal'
+    #roomtype1 didn't used
     def Room1(self, top_x=1, top_y=1):
         if np.random.random() > 0.3:
             if np.random.random() > 0.5:
@@ -167,53 +173,32 @@ class FourRoomsEnv(MiniGridEnv):
                 self.put_obj(Box(self.color1), top_x+2, top_y+2)
         if np.random.random() > 0.3:
             self.put_obj(Box(self.color2), top_x, top_y+4)
+    #room2 80% has ball, 20% has box, 5% has box2
     def Room2(self, top_x=7, top_y=1):
-        if np.random.random() > 0.2:
-            '''if np.random.random() > 0.6:
-                self.put_obj(Ball(), top_x+3, top_y+1)
-            else:
-                self.put_obj(Ball(), top_x+3, top_y+3)'''
-            self.put_obj(Ball(), top_x + 4, top_y + 1)
-            if 'ball' not in self.goal_set:
-                self.goal_set.append('ball')
-        if np.random.random() > 0.8:
-            '''if np.random.random() > 0.7:
-                self.put_obj(Box(self.color1), top_x, top_y+4)
-            else:
-                self.put_obj(Box(self.color1), top_x+2, top_y+4)'''
-            self.put_obj(Box(), top_x , top_y + 1)
-            if 'box' not in self.goal_set:
-                self.goal_set.append('box')
+        self.putObjectsInRoom(top_x, top_y, 0.8, 0.2, 0.05)
+
+    #room3 20% has ball, 5% has box, 80% has box2
     def Room3(self, top_x=1, top_y=7):
-        if np.random.random() > 0.8:
-            '''if np.random.random() > 0.8:
-                self.put_obj(Ball(), top_x+3, top_y+3)
-            else:
-                self.put_obj(Ball(), top_x+1, top_y+3)'''
+        self.putObjectsInRoom(top_x, top_y, 0.2, 0.05, 0.8)
+
+    #room4 5% has ball, 80 has box, 20% has box2
+    def Room4(self, top_x=7, top_y=7):
+        self.putObjectsInRoom(top_x, top_y, 0.05, 0.8, 0.2)
+
+    def putObjectsInRoom(self, top_x, top_y, probs_ball, probs_box, probs_box2):
+        if np.random.random() < probs_ball:
             self.put_obj(Ball(), top_x + 4, top_y + 4)
             if 'ball' not in self.goal_set:
                 self.goal_set.append('ball')
-        if np.random.random() > 0.2:
-            '''if np.random.random() > 0.7:
-                self.put_obj(Box(self.color2), top_x+4, top_y)
-            else:
-                self.put_obj(Box(self.color2), top_x+4, top_y+2)'''
-            self.put_obj(Box2(), top_x + 2, top_y + 2)
-            if 'box2' not in self.goal_set:
-                self.goal_set.append('box2')
-    def Room4(self, top_x=7, top_y=7):
-        if np.random.random() > 0.2:
-            '''if np.random.random() > 0.5:
-                self.put_obj(Box(self.color1), top_x+1, top_y+1)
-            else:
-                self.put_obj(Box(self.color1), top_x+2, top_y)'''
-            self.put_obj(Box(), top_x + 4, top_y)
+        if np.random.random() < probs_box:
+            self.put_obj(Box(), top_x, top_y + 1)
             if 'box' not in self.goal_set:
                 self.goal_set.append('box')
-        if np.random.random() > 0.8:
-            self.put_obj(Box2(), top_x+1, top_y+4)
+        if np.random.random() < probs_box2:
+            self.put_obj(Box2(), top_x+2, top_y+2)
             if 'box2' not in self.goal_set:
                 self.goal_set.append('box2')
+
     def step(self, action):
         obs, reward, done, info = MiniGridEnv.step(self, action)
         obs['image'] = np.array(obs['image']).flatten()
