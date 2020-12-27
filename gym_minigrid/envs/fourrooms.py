@@ -12,14 +12,16 @@ class FourRoomsEnv(MiniGridEnv):
     Can specify agent and goal position, if not it set at random.
     """
 
-    def __init__(self, agent_pos=None, goal_pos=None, fixed_room_dist=False):
+    def __init__(self, agent_pos=None, goal_pos=None, fixed_room_dist=False, test=None):
         self._agent_default_pos = agent_pos
         self._goal_default_pos = goal_pos
         self.fixed_room_dist = fixed_room_dist
         goal_typeset = ['ball','box1', 'box2']
 
+        print(test)
+
         self.room_set = []
-        super().__init__(grid_size=13, max_steps=100,agent_view_size=3, goal_type=goal_typeset)
+        super().__init__(grid_size=13, max_steps=1000,agent_view_size=3, goal_type=goal_typeset)
         #print(1)
         self.observation_space = spaces.Box(
             low=0,
@@ -47,10 +49,26 @@ class FourRoomsEnv(MiniGridEnv):
         obs = self.gen_obs()
         #print("obs:",obs)
         return obs
-    def _gen_grid(self, width, height):
-        # Create the grid
-        self.grid = Grid(width, height)
-        self.goal_set = []
+    # recreate our imagining house
+    def recreate(self, objects_in_rooms, rooms, goal_type):
+        self.grid = Grid(self.width, self.height)
+        self.room_set = []
+        self.goal_type = goal_type
+        self.buildWallsAndDoors(self.width, self.height)
+        self.setAgentStartPos()
+        tops = [[1,1],[1,7],[7,1],[7,7]]
+        for ith_room in range(len(objects_in_rooms)):
+            top_i = tops[ith_room]
+            objects_ith_room = objects_in_rooms[ith_room]
+            self.putObjectsInRoom(top_i[0],top_i[1],objects_ith_room[0],objects_ith_room[1],objects_ith_room[2])
+            self.room_set.append(rooms[ith_room])
+
+
+
+        obs = self.gen_obs()
+        return obs
+
+    def buildWallsAndDoors(self, width, height):
         # Generate the surrounding walls
         self.grid.horz_wall(0, 0)
         self.grid.horz_wall(0, height - 1)
@@ -85,14 +103,19 @@ class FourRoomsEnv(MiniGridEnv):
                     pos = (xL + 3, yB)
                     #pos = (self._rand_int(xL + 1, xR), yB)
                     self.grid.set(*pos, None)
-
-        # Randomize the player start position and orientation
-        #if self._agent_default_pos is not None:
+    def setAgentStartPos(self):
         self.agent_pos = (7,1)
         self.grid.set(7,1, None)
-        self.agent_dir = 1  
-        #else:
-        #    self.place_agent()
+        self.agent_dir = 1          
+
+    def _gen_grid(self, width, height):
+        # Create the grid
+        self.grid = Grid(width, height)
+        self.goal_set = []
+
+        self.buildWallsAndDoors(width, height)
+
+        self.setAgentStartPos()
 
         doorColors = set(COLOR_NAMES)
 
@@ -218,3 +241,4 @@ register(
     id='MiniGrid-FourRooms-v0',
     entry_point='gym_minigrid.envs:FourRoomsEnv'
 )
+
