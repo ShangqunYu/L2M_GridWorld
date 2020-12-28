@@ -31,19 +31,26 @@ def reset2():
     if hasattr(env, 'mission'):
         print('Mission: %s' % env.mission)
         window.set_caption(env.mission)
-    #redraw(obs)
+    redraw(obs)
 
 def step(action, index=0):
     obs, reward, done, info = env.step(action)
     print('step=%s, reward=%.2f' % (env.step_count, reward))
     obs['house'] = index
     print('obs:', obs)
+    '''
+    sanity check
+    '''
+    foundNewKnowledge = updateKnowledge(env, obs, index)
+
+    redraw(obs)
+
+
     if done:
         print('done!')
-        reset()
-    else:
-        redraw(obs)
-    return obs, reward, done, info
+        #reset2()
+
+    return obs, reward, done, info, foundNewKnowledge
 
 def key_handler(event):
     print('pressed', event.key)
@@ -144,7 +151,7 @@ parser.add_argument(
     '--K',
     type=int,
     help="number of Mdps",
-    default=5
+    default=3
 )
 parser.add_argument(
     '--epsilon',
@@ -169,26 +176,7 @@ for j in range(args.num_envs):
     env = gym.make(args.env)
     env_set.append(env)
 random.shuffle(env_set)
-'''
-for j in range(args.num_envs):
-    env = env_set[j]
-    index = j
-    if args.agent_view:
-        env = RGBImgPartialObsWrapper(env)
-        env = ImgObsWrapper(env)
 
-    window = Window('gym_minigrid - ' + args.env)
-    window.reg_key_handler(key_handler)
-
-    reset()
-    for i in range(200):
-        a = np.random.choice(3)
-        step(a, index)
-        if i % 20 ==0:
-            reset2()
-    # Blocking event loop
-    window.show(block=True)
-'''
 #table 1: Map from house id and room location to room type. (-1 menas “I don’t know yet”):
  #houseToRoomtype[0][0] denotes room types of room 0 in house 0. if value is -1 then it means we don't know yet
 houseRoomToType = np.ones((args.num_envs, args.num_rooms), dtype = np.int8) * -1
@@ -196,6 +184,9 @@ houseRoomToType = np.ones((args.num_envs, args.num_rooms), dtype = np.int8) * -1
 #initially we just assume that all rooms can be any kind of room. we will use Dirichlet distribution.
 #we set alpha to be (1,1,1,....1). So any kinds of distribution will be uniformly possible 
 RoomToTypeProb = np.ones((args.num_rooms, args.num_roomtypes)) 
+
+#table 3, zero means we don't know yet
+houseLocToObject = np.zeros((args.num_envs, 13, 13), dtype = np.int8) 
 
 #Map from room types to objects. (times it doesn't show up vs how many times it shows up )
 roomtypeToObject = np.ones((args.num_roomtypes, args.num_objects, 2))
@@ -211,8 +202,18 @@ roomtypeToObject[1,0,1] = 100
 roomtypeToObject[1,1,1] = 100
 roomtypeToObject[1,2,1] = 100
 
+#currently, items can only be at the following locations. 
+#location (x, y) means at x row, y column.
+#                 room0   room1     room2   room3
+ball_locations = [(5, 5), (11, 5), (5, 11), (11, 11)]
+box_locations =  [(2, 1), (8, 1),  (2, 7),  (8, 7)]
+box2_locations = [(3, 3), (9, 3),  (3, 9),  (9, 9)]
+# all locations that may contain target object
+object_locations = [ball_locations, box_locations, box2_locations]
+
+
 def sampleRooms(ith_house):
-    
+    #first of we check what we know, -1 means we don't know for a particular room
     rooms = np.copy(houseRoomToType[ith_house])
 
     for ith_room in range(len(rooms)):
@@ -224,15 +225,25 @@ def sampleRooms(ith_house):
             rooms[ith_room] = np.random.choice(args.num_roomtypes, p=prob)
     return rooms
 
-def sampleObjects(rooms):
+def sampleObjects(ith_house, rooms):
     #we create a table to record what objects each room has. 
     objects_in_rooms = np.zeros((args.num_rooms, args.num_objects))
     for ith_room in range(len(objects_in_rooms)):
         for ith_object in range(len(objects_in_rooms[ith_room])):
-            #we sample a distribution based on the prior and then take a guess based on the distribution
-            #roomtypeToObject[rooms[ith_room], ith_object] records how many times a item doesn't show up in a room vs show up in a room
-            prob = np.random.dirichlet(alpha=roomtypeToObject[rooms[ith_room], ith_object])
-            objects_in_rooms[ith_room, ith_object] = np.random.choice(2, p=prob)
+            location = object_locations[ith_object][ith_room]
+            #value 0 means we don't have any previous info about that location, 
+            print("sampling, key location ", location[0], location[1],' has ', houseLocToObject[ith_house, location[0], location[1]])
+            if houseLocToObject[ith_house, location[0], location[1]]== 0:
+                #so we sample a distribution based on the prior and then take a guess based on the distribution
+                #roomtypeToObject[rooms[ith_room], ith_object] records how many times an item doesn't show up in a room vs show up in a room
+                prob = np.random.dirichlet(alpha=roomtypeToObject[rooms[ith_room], ith_object])
+                objects_in_rooms[ith_room, ith_object] = np.random.choice(2, p=prob)
+            #if we know there is nothing in the location, then we don't sample, we know there is nothing there
+            elif houseLocToObject[ith_house, location[0], location[1]] == 1:
+                objects_in_rooms[ith_room, ith_object] = 0
+            #otherwise, we know for sure the item is there. 
+            else:
+                objects_in_rooms[ith_room, ith_object] = 1
         print('room ', ith_room, ' is a type ', rooms[ith_room], ' room and it has ', objects_in_rooms[ith_room])
 
     return objects_in_rooms
@@ -246,16 +257,16 @@ def selectAction(qtable, state, epsilon, i):
     return a
 
 
-def sampleMDPs(ith_house, goal_type):
+def sampleMDPs(ith_house, goal_type, starting_pos, starting_dir):
 
     qtables = []
 
-    #once we get into a house, we create 10 mdps, 10 imagined environment based on past experience, 
+    #here we create k mdps, k imagined environment based on past experience, 
     for ith_mdp in range(args.K):
-        #find out what we know about the room layout for this house, -1 means we don't know for a particular room
+        #find out what we know about the room layout for this house, 
         rooms=sampleRooms(ith_house)
         #after we knew/guessed what room type is for each room, we need to guess what kind of objects in each room
-        objects_in_rooms = sampleObjects(rooms)
+        objects_in_rooms = sampleObjects(ith_house, rooms)
         #after we know what inside each room, we need to create our imagining world. 
         imaginingHouse = gym.make(args.env)
         #and then we set the environment into what we have sampled
@@ -264,8 +275,10 @@ def sampleMDPs(ith_house, goal_type):
         qtable = np.zeros((imaginingHouse.grid.width, imaginingHouse.grid.height, 4, 3))
         #epsilon for the mdp
         epsilon = args.epsilon
-        #checking our overall performance
+        #tracking our overall performance
         total_Reward = 0
+
+        obs = imaginingHouse.reset2(starting_pos, starting_dir)
         #the current state is the agent's position plus its direction.
         state = [imaginingHouse.agent_pos[0], imaginingHouse.agent_pos[1], imaginingHouse.agent_dir] 
         #solve this mdp
@@ -278,9 +291,9 @@ def sampleMDPs(ith_house, goal_type):
  
             if done == True:
                 #reset the agent's postion to its starting position, objects remain in the same locations
-                obs = imaginingHouse.reset2()
+                obs = imaginingHouse.reset2(starting_pos, starting_dir)
 
-                print("total reward: ", total_Reward, ' target is:', goal_type, 'epsilon:', epsilon, ' No of iterations:', i)
+                print('ith_mdp', 'th_mdp total reward: ', total_Reward, ' target is:', goal_type, 'epsilon:', epsilon, ' No of iterations:', i)
 
             new_state = [imaginingHouse.agent_pos[0], imaginingHouse.agent_pos[1], imaginingHouse.agent_dir]
             #update the q table
@@ -289,13 +302,20 @@ def sampleMDPs(ith_house, goal_type):
             else:
                 qtable[state[0],state[1],state[2],a] += (reward - gamma * qtable[state[0],state[1],state[2],a])
             total_Reward += reward
-            #if total reward is more than 500, our qtalbe of this mdp is good enough
+            #if total reward is more than 400, our qtalbe of this mdp is good enough
             if total_Reward >400:
                 break
             state = new_state
             #decrease the epsilon
             epsilon = min_epsilon + (max_epsilon - min_epsilon)*np.exp(-decay_rate*i) 
+        qtables.append(np.expand_dims(qtable, 4))
+    merged_qtable = np.concatenate(qtables, axis = 4)
 
+    print('marges qtable shape: ', merged_qtable.shape)
+
+    return merged_qtable
+
+'''
         #sanity check, after solved the mdp ,check if it works
         obs = imaginingHouse.reset2()
 
@@ -313,14 +333,72 @@ def sampleMDPs(ith_house, goal_type):
 
             new_state = [imaginingHouse.agent_pos[0], imaginingHouse.agent_pos[1], imaginingHouse.agent_dir]
 
-            state = new_state
-        qtables.append(np.expand_dims(qtable, 4))
+            state = new_state'''
+        
     #shape of merged qtable is (width, height, orientaion, action, K)
-    merged_qtable = np.concatenate(qtables, axis = 4)
+    
 
-    print('marges qtable shape: ', merged_qtable.shape)
 
-    return merged_qtable
+
+def updateKnowledge(env, obs, ith_house):
+    #an indicator shows whehter we have found new knowledge
+    foundNewKnowledge = False
+    # we update the table 3 based on what we have seen in the house
+    f_vec = env.dir_vec
+    r_vec = env.right_vec
+    top_left = env.agent_pos + f_vec * (env.agent_view_size-1) - r_vec * (env.agent_view_size // 2)
+    observed_info = np.zeros((env.grid.width, env.grid.height), dtype = np.int8)
+    for vis_j in range(0, env.agent_view_size):
+        for vis_i in range(0, env.agent_view_size):
+            abs_i, abs_j = top_left - (f_vec * vis_j) + (r_vec * vis_i)
+            #the view can't go beyond the space of the environment.
+            if abs_i < 0 or abs_i >= env.width:
+                continue
+            if abs_j < 0 or abs_j >= env.height:
+                continue
+            #NOTE!!! indices in numpy table and the actual location coordinate indices are different
+            observed_info[abs_j,abs_i] = obs['image'][vis_i,vis_j]
+            #if the observed info is zero, it means we can't see it through the wall, so don't update, 
+            #and if we already know the information, then we also don't have to update. 
+            if observed_info[abs_j,abs_i] != 0 and observed_info[abs_j,abs_i] != houseLocToObject[ith_house, abs_j, abs_i]:
+                print("it's different")
+                houseLocToObject[ith_house, abs_j, abs_i] = observed_info[abs_j,abs_i]
+                
+                #if the location is where the itmes can show up, we need to update the tables based on whether
+                #we have seen objects or not. it also means we have acquired new knowledge. 
+                if (abs_j,abs_i) in ball_locations:
+                    foundNewKnowledge = True
+                    if observed_info[abs_j,abs_i] == 3:
+                        #we find ball here, we count 1 more ball encounter when we are in this roomtype
+                        roomtypeToObject[obs['roomtype'], 0, 1] +=  1 
+                    else:
+                        #we didn't find ball here
+                        roomtypeToObject[obs['roomtype'], 0, 0] +=  1 
+                if (abs_j,abs_i) in box_locations:
+                    foundNewKnowledge = True
+                    if observed_info[abs_j,abs_i] == 4:
+                        roomtypeToObject[obs['roomtype'], 1, 1] +=  1 
+                    else:
+                        roomtypeToObject[obs['roomtype'], 1, 0] +=  1 
+                if (abs_j,abs_i) in box2_locations:
+                    foundNewKnowledge = True
+                    if observed_info[abs_j,abs_i] == 5:
+                        roomtypeToObject[obs['roomtype'], 2, 1] +=  1 
+                    else:
+                        roomtypeToObject[obs['roomtype'], 2, 0] +=  1 
+
+    # then we also need to update table 1 the room layout.
+    if houseRoomToType[ith_house, obs['room']]!= obs['roomtype']:
+        houseRoomToType[ith_house, obs['room']] = obs['roomtype']
+        foundNewKnowledge = True
+        #also update our prior, 
+        RoomToTypeProb[obs['room'],obs['roomtype']] += 1
+    print(houseRoomToType[ith_house,:])
+
+    #print(observed_info)
+    print(houseLocToObject[ith_house,:,:])
+    print("whether have new knowledge:", foundNewKnowledge)
+    return foundNewKnowledge
 
 
 
@@ -342,12 +420,7 @@ for ith_visit in range(args.num_visitsPerHouse):
 
         state = [env.agent_pos[0], env.agent_pos[1], env.agent_dir] 
         
-        #When an agent arrives at a house, it initializes table 3 to “I don’t know” everywhere.
-        #table 3: Map from current house location to object at that location (can include “empty” but also “I don’t know yet”)
-        #houseLocToObject[0][0] denotes location 0,0.   if value is 0 then it means we don't know yet
-        houseLocToObject = np.zeros((env.grid.width, env.grid.height))
-
-        merged_qtable = sampleMDPs(ith_house, goal_type)
+        merged_qtable = sampleMDPs(ith_house, goal_type, env.agent_pos, env.agent_dir)
 
         max_merged_qtable = np.max(merged_qtable, 4)
 
@@ -355,16 +428,30 @@ for ith_visit in range(args.num_visitsPerHouse):
 
 
 
-        for i in range(10):
+        for i in range(20):
             print('check under current state, value: ', max_merged_qtable[state[0], state[1], state[2], :])
             a = np.argmax(max_merged_qtable[state[0], state[1], state[2], :])
-            obs, reward, done, info = step(a, ith_house)
+            obs, reward, done, info, foundNewKnowledge = step(a, ith_house)
+
 
             state = [env.agent_pos[0], env.agent_pos[1], env.agent_dir]
 
-            #based on the observation, we check if we have collected new knowedge, if yes, we resample. 
-            #use get_view_exts to get (topX, topY, botX, botY)
-            print('topx, topy, botx, boty:', env.get_view_exts())
+            #if we have found new knowledge, then we need to re sample those mdps based on the new knowledge
+            #and our starting position for those mdps should be the agent's current location.
+            if foundNewKnowledge:
+                merged_qtable = sampleMDPs(ith_house, goal_type, env.agent_pos, env.agent_dir)
+                max_merged_qtable = np.max(merged_qtable, 4)
+
+            if done:
+                break
+
+
+
+
+
+        window.reg_key_handler(key_handler)
+        window.show(block=True)
+
 
 
 

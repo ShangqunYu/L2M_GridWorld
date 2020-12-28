@@ -29,11 +29,12 @@ class FourRoomsEnv(MiniGridEnv):
             shape=(self.agent_view_size, self.agent_view_size),
             dtype='uint8'
         )
-    def reset2(self):
+    # defalut is the starting position, but for imagined mdps, we may want to modify the starting position
+    def reset2(self, agent_pos = (7, 1), agent_dir = 1):
         # Current position and direction of the agent
-        self.agent_pos = (7, 1)
-        self.grid.set(7, 1, None)
-        self.agent_dir = 1
+        self.agent_pos = agent_pos
+        self.grid.set(agent_pos[0], agent_pos[1], None)
+        self.agent_dir = agent_dir
 
         # Generate a new random grid at the start of each episode
         # To keep the same grid for each episode, call env.seed() with
@@ -56,6 +57,11 @@ class FourRoomsEnv(MiniGridEnv):
         self.goal_type = goal_type
         self.buildWallsAndDoors(self.width, self.height)
         self.setAgentStartPos()
+        '''four rooms in a house
+        rooms are numbered as following pattern:
+            0 2
+            1 3
+        '''
         tops = [[1,1],[1,7],[7,1],[7,7]]
         for ith_room in range(len(objects_in_rooms)):
             top_i = tops[ith_room]
@@ -224,16 +230,20 @@ class FourRoomsEnv(MiniGridEnv):
 
     def step(self, action):
         obs, reward, done, info = MiniGridEnv.step(self, action)
-        obs['image'] = np.array(obs['image']).flatten()
+        #obs['image'] = np.array(obs['image']).flatten()
         obs['pos'] = np.array(obs['pos']).flatten()
         if obs['pos'][0] < 6 and obs['pos'][1] < 6:
-            obs['room'] = self.room_set[0]
+            obs['roomtype'] = self.room_set[0]
+            obs['room'] = 0
         elif obs['pos'][0] < 6 and obs['pos'][1] > 6:
-            obs['room'] = self.room_set[1]
+            obs['roomtype'] = self.room_set[1]
+            obs['room'] = 1
         elif obs['pos'][0] > 6 and obs['pos'][1] < 6:
-            obs['room'] = self.room_set[2]
+            obs['roomtype'] = self.room_set[2]
+            obs['room'] = 2
         else:
-            obs['room'] = self.room_set[3]
+            obs['roomtype'] = self.room_set[3]
+            obs['room'] = 3
         #print('o:',obs)
         return obs, reward, done, info
 
