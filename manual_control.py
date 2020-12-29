@@ -121,7 +121,7 @@ parser.add_argument(
     '--num_envs',
     type=int,
     help="number of envs",
-    default=1
+    default=3
 )
 parser.add_argument(
     '--num_rooms',
@@ -192,15 +192,7 @@ houseLocToObject = np.zeros((args.num_envs, 13, 13), dtype = np.int8)
 roomtypeToObject = np.ones((args.num_roomtypes, args.num_objects, 2))
 
 #test
-RoomToTypeProb[0,0] = 10
-RoomToTypeProb[1,1] = 10
-RoomToTypeProb[2,2] = 10
-roomtypeToObject[2,0,0] = 100
-roomtypeToObject[2,1,0] = 100
-roomtypeToObject[2,2,0] = 100
-roomtypeToObject[1,0,1] = 100
-roomtypeToObject[1,1,1] = 100
-roomtypeToObject[1,2,1] = 100
+
 
 #currently, items can only be at the following locations. 
 #location (x, y) means at x row, y column.
@@ -240,9 +232,11 @@ def sampleObjects(ith_house, rooms):
                 objects_in_rooms[ith_room, ith_object] = np.random.choice(2, p=prob)
             #if we know there is nothing in the location, then we don't sample, we know there is nothing there
             elif houseLocToObject[ith_house, location[0], location[1]] == 1:
+                print("object is not there, location: ", location[0], ' ',location[1])
                 objects_in_rooms[ith_room, ith_object] = 0
             #otherwise, we know for sure the item is there. 
             else:
+                print("object is there, location: ", location[0], ' ',location[1])
                 objects_in_rooms[ith_room, ith_object] = 1
         print('room ', ith_room, ' is a type ', rooms[ith_room], ' room and it has ', objects_in_rooms[ith_room])
 
@@ -293,7 +287,7 @@ def sampleMDPs(ith_house, goal_type, starting_pos, starting_dir):
                 #reset the agent's postion to its starting position, objects remain in the same locations
                 obs = imaginingHouse.reset2(starting_pos, starting_dir)
 
-                print('ith_mdp', 'th_mdp total reward: ', total_Reward, ' target is:', goal_type, 'epsilon:', epsilon, ' No of iterations:', i)
+                print(ith_mdp, 'th_mdp total reward: ', total_Reward, ' target is:', goal_type, 'epsilon:', epsilon, ' No of iterations:', i)
 
             new_state = [imaginingHouse.agent_pos[0], imaginingHouse.agent_pos[1], imaginingHouse.agent_dir]
             #update the q table
@@ -308,7 +302,9 @@ def sampleMDPs(ith_house, goal_type, starting_pos, starting_dir):
             state = new_state
             #decrease the epsilon
             epsilon = min_epsilon + (max_epsilon - min_epsilon)*np.exp(-decay_rate*i) 
+        #after we solve each MDP, we append it into a group
         qtables.append(np.expand_dims(qtable, 4))
+    #Then we merge all the q tables, the shape(width, height, num_directions, num_actions, K)
     merged_qtable = np.concatenate(qtables, axis = 4)
 
     print('marges qtable shape: ', merged_qtable.shape)
@@ -361,7 +357,6 @@ def updateKnowledge(env, obs, ith_house):
             #if the observed info is zero, it means we can't see it through the wall, so don't update, 
             #and if we already know the information, then we also don't have to update. 
             if observed_info[abs_j,abs_i] != 0 and observed_info[abs_j,abs_i] != houseLocToObject[ith_house, abs_j, abs_i]:
-                print("it's different")
                 houseLocToObject[ith_house, abs_j, abs_i] = observed_info[abs_j,abs_i]
                 
                 #if the location is where the itmes can show up, we need to update the tables based on whether
@@ -402,7 +397,7 @@ def updateKnowledge(env, obs, ith_house):
 
 
 
-
+#########################################main loop####################################
 #each house we visit several times:
 for ith_visit in range(args.num_visitsPerHouse):
     #loop through all the houses:
@@ -415,29 +410,27 @@ for ith_visit in range(args.num_visitsPerHouse):
         #window.reg_key_handler(key_handler)
         #we reset the house environment, which doesn't change the room layout, some minor issues with object
         obs = env.reset2()
-
+        #figure out what kind of goal we have
         goal_type = env.goal_type
-
+    
         state = [env.agent_pos[0], env.agent_pos[1], env.agent_dir] 
-        
+        #after we get into a house, first of all we will sample K mdps based on past experience. 
         merged_qtable = sampleMDPs(ith_house, goal_type, env.agent_pos, env.agent_dir)
-
+        #in merged_qtable, each action has k values(cause we got k mdps), now we only need the max for each action. 
         max_merged_qtable = np.max(merged_qtable, 4)
 
-        print('max_merged_qtable shape:', max_merged_qtable.shape)
-
-
-
-        for i in range(20):
+        for i in range(100):
+            
             print('check under current state, value: ', max_merged_qtable[state[0], state[1], state[2], :])
+            #we select an action that has the highest value from the smapled MDPs
             a = np.argmax(max_merged_qtable[state[0], state[1], state[2], :])
+            #then we take a step, after taking a step, we will know if we have found some new knowledge.
             obs, reward, done, info, foundNewKnowledge = step(a, ith_house)
-
 
             state = [env.agent_pos[0], env.agent_pos[1], env.agent_dir]
 
             #if we have found new knowledge, then we need to re sample those mdps based on the new knowledge
-            #and our starting position for those mdps should be the agent's current location.
+            #Our starting position for the agent in those mdps should be the agent's current location.
             if foundNewKnowledge:
                 merged_qtable = sampleMDPs(ith_house, goal_type, env.agent_pos, env.agent_dir)
                 max_merged_qtable = np.max(merged_qtable, 4)
@@ -445,12 +438,17 @@ for ith_visit in range(args.num_visitsPerHouse):
             if done:
                 break
 
+        print('roomtypeToObject:',roomtypeToObject)
+        print('RoomToTypeProb: ', RoomToTypeProb)
+        print('houseLocToObject:', houseLocToObject)
+    print("Finished!")
 
 
 
 
-        window.reg_key_handler(key_handler)
-        window.show(block=True)
+
+        #window.reg_key_handler(key_handler)
+        #window.show(block=True)
 
 
 
