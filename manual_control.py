@@ -250,6 +250,97 @@ def selectAction(qtable, state, epsilon, i):
         a = np.argmax(qtable[state[0], state[1], state[2], :])
     return a
 
+def value_iteration(num_iterations, env):
+    V = np.zeros((env.grid.width, env.grid.height, 4))
+    Q = np.zeros((env.grid.width, env.grid.height, 4, 3))
+    for i in range(num_iterations):
+        V_old = V.copy()
+        Q_old = Q.copy()
+        bellman_update(V, Q, env)
+        oldstate = np.concatenate([V_old.reshape((-1)), Q_old.reshape((-1))])
+        newstate = np.concatenate([V.reshape((-1)), Q.reshape((-1))])
+        diff = newstate - oldstate
+        diffnorm = np.linalg.norm(diff, ord=2)
+        print(i, ' iterations!!!!!!!!!!!!!!!!!!!!!!!', ' diffnorm: ', diffnorm)
+        #if the update is very small, we assume it converged. 
+        #also if there is no target object in the house, it will end in the first iteration as well. 
+        if diffnorm < 0.0001:
+            break
+    return V, Q
+
+def bellman_update(V, Q, env):
+    for i in range(env.grid.width):
+        for j in range(env.grid.height):
+            #we only update states whose location is not occupied by walls or objects. 
+            if env.grid.get(i,j) == None:
+                #four different orientations
+                for k in range(4):
+                    
+                    s = (i,j,k)
+                    front_position = front_pos(env, i, j, k)
+                    #if it is the goal state, we don't give it a value
+
+                    if env.grid.get(front_position[0], front_position[1])!= None and env.grid.get(front_position[0], front_position[1]).type == env.goal_type:
+                        #print(env.goal_type, ' is in front of me!! at ', front_position[0], ' ', front_position[1], 'my position is ', i,' ', j,' ', k)
+                        continue
+                    else:
+                        for ai in range(3):
+                            s_prime = transition(env, s, ai)
+                            #print('s: ',s, 'action: ', ai, 's_prime:', s_prime)
+                            Q[i, j, k, ai] = rewardFunc(env, s, ai, s_prime) + gamma * V[s_prime]
+                        #print(Q[s])
+                        V[s] = Q[s].max()
+def rewardFunc(env, s, ai, s_prime):
+    front_position = front_pos(env, s_prime[0], s_prime[1], s_prime[2])
+    if env.grid.get(front_position[0], front_position[1]) == None:
+        return 0
+    else:
+        if env.grid.get(front_position[0], front_position[1]).type == env.goal_type:
+            #print('you got reward here!! at : ', s_prime)
+            return 1
+        else:
+            return 0
+
+def front_pos(env, i, j, k):
+    DIR_TO_VEC = [
+        # Pointing right (positive X)
+        np.array((1, 0)),
+        # Down (positive Y)
+        np.array((0, 1)),
+        # Pointing left (negative X)
+        np.array((-1, 0)),
+        # Up (negative Y)
+        np.array((0, -1)),]
+    front_pos = (i, j) + DIR_TO_VEC[k]
+    return front_pos
+
+#for value iteration.
+def transition(env, s, a):
+    #if action is turning left
+    if a == 1:
+        s_leftTurn = (s[0],s[1], s[2]-1 if s[2]-1 >=0 else 3)
+        return s_leftTurn
+    #if action is turning right
+    elif a == 2:
+        s_rightTurn = (s[0], s[1], s[2]+ 1 if s[2]+1 <=3 else 0)
+        return s_rightTurn
+    #if action is moving forward
+
+    elif a == 0:
+        front_position = front_pos(env, s[0], s[1], s[2])
+        #if the forward postion is not empty, agent can't go there
+        if env.grid.get(front_position[0], front_position[1]) == None:
+            s_forward = (front_position[0], front_position[1], s[2])
+            return s_forward
+        else:
+            s_forward = s
+            return s_forward
+    else:
+        assert False, "invalid action"
+
+                
+
+
 
 def sampleMDPs(ith_house, goal_type, starting_pos, starting_dir):
 
@@ -265,60 +356,19 @@ def sampleMDPs(ith_house, goal_type, starting_pos, starting_dir):
         imaginingHouse = gym.make(args.env)
         #and then we set the environment into what we have sampled
         imaginingHouse.recreate(objects_in_rooms,rooms,goal_type)
-        #create a qtable for this imagined environment
-        qtable = np.zeros((imaginingHouse.grid.width, imaginingHouse.grid.height, 4, 3))
-        #epsilon for the mdp
-        epsilon = args.epsilon
-        #tracking our overall performance
-        total_Reward = 0
 
-        obs = imaginingHouse.reset2(starting_pos, starting_dir)
-        #the current state is the agent's position plus its direction.
-        state = [imaginingHouse.agent_pos[0], imaginingHouse.agent_pos[1], imaginingHouse.agent_dir] 
-        #solve this mdp
-        for i in range(args.max_iteration):
-            #select action based on epsilon greedy strategy
-            a = selectAction(qtable, state, epsilon, i)
-
-            #take a step based on the action we select
-            obs, reward, done, info = imaginingHouse.step(a)
- 
-            if done == True:
-                #reset the agent's postion to its starting position, objects remain in the same locations
-                obs = imaginingHouse.reset2(starting_pos, starting_dir)
-
-                print(ith_mdp, 'th_mdp total reward: ', total_Reward, ' target is:', goal_type, 'epsilon:', epsilon, ' No of iterations:', i)
-
-            new_state = [imaginingHouse.agent_pos[0], imaginingHouse.agent_pos[1], imaginingHouse.agent_dir]
-            #update the q table
-            if not done:
-                qtable[state[0],state[1],state[2],a] +=  (reward + gamma * np.max(qtable[new_state[0], new_state[1], new_state[2], :]) - qtable[state[0],state[1],state[2],a])
-            else:
-                qtable[state[0],state[1],state[2],a] += (reward - gamma * qtable[state[0],state[1],state[2],a])
-            total_Reward += reward
-            #if total reward is more than 400, our qtalbe of this mdp is good enough
-            if total_Reward >400:
-                break
-            state = new_state
-            #decrease the epsilon
-            epsilon = min_epsilon + (max_epsilon - min_epsilon)*np.exp(-decay_rate*i) 
-        #after we solve each MDP, we append it into a group
-        qtables.append(np.expand_dims(qtable, 4))
-    #Then we merge all the q tables, the shape(width, height, num_directions, num_actions, K)
-    merged_qtable = np.concatenate(qtables, axis = 4)
-
-    print('marges qtable shape: ', merged_qtable.shape)
-
-    return merged_qtable
-
-'''
+        #testing
+        V, Q = value_iteration(60, imaginingHouse)
+        '''
         #sanity check, after solved the mdp ,check if it works
         obs = imaginingHouse.reset2()
 
         state = [imaginingHouse.agent_pos[0], imaginingHouse.agent_pos[1], imaginingHouse.agent_dir]
 
+        
         for i in range(50):
-            a = np.argmax(qtable[state[0], state[1], state[2], :])
+            a = np.argmax(Q[state[0], state[1], state[2], :])
+            print('current location: ', state, ' q values: ',Q[state[0], state[1], state[2], :],' action taking: ', a)
             obs, reward, done, info = imaginingHouse.step(a)
             img = imaginingHouse.render('rgb_array', tile_size=args.tile_size)
             window.show_img(img)
@@ -329,9 +379,23 @@ def sampleMDPs(ith_house, goal_type, starting_pos, starting_dir):
 
             new_state = [imaginingHouse.agent_pos[0], imaginingHouse.agent_pos[1], imaginingHouse.agent_dir]
 
-            state = new_state'''
-        
+            state = new_state
+        '''
+        #after we solve each MDP, we append it into a group
+        qtables.append(np.expand_dims(Q, 4))
+    
+    #Then we merge all the q tables, the shape(width, height, num_directions, num_actions, K)
+    merged_qtable = np.concatenate(qtables, axis = 4)
+
+    print('marges qtable shape: ', merged_qtable.shape)
+
     #shape of merged qtable is (width, height, orientaion, action, K)
+    return merged_qtable
+
+
+
+        
+    
     
 
 
@@ -414,6 +478,18 @@ for ith_visit in range(args.num_visitsPerHouse):
         goal_type = env.goal_type
     
         state = [env.agent_pos[0], env.agent_pos[1], env.agent_dir] 
+
+        #testing code
+        for j in range(env.grid.height):
+            tempString = ""
+            for i in range(env.grid.width):
+                if env.grid.get(i,j) == None:
+                    tempString += 'null' + ' '
+                else:
+                    tempString += str(env.grid.get(i,j).type) + ' '
+            print(tempString) 
+
+
         #after we get into a house, first of all we will sample K mdps based on past experience. 
         merged_qtable = sampleMDPs(ith_house, goal_type, env.agent_pos, env.agent_dir)
         #in merged_qtable, each action has k values(cause we got k mdps), now we only need the max for each action. 
@@ -453,13 +529,4 @@ for ith_visit in range(args.num_visitsPerHouse):
 
 
 
-
-# each house we visit 10 times:
-#   loop through all the houses:
-#  
-#       once we get into a house, we create 10 mdps, 10 imagined environment based on past experience, 
-#       Then we solve those 10 MDPs, and combine them into 1 qtable, select 1 action based on the q table
-#       while not found the target: 
-#           we check if we know something new based on the observation, if yes, we recreate those 10 mdps, and solve it
-#           we choose an action to go
 
