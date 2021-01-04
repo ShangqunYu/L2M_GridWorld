@@ -504,15 +504,16 @@ for ith_visit in range(args.num_visitsPerHouse):
             obs, reward, done, info, foundNewKnowledge = step(a, ith_house)
 
             state = [env.agent_pos[0], env.agent_pos[1], env.agent_dir]
-
+            
+            if done:
+                break
             #if we have found new knowledge, then we need to re sample those mdps based on the new knowledge
             #Our starting position for the agent in those mdps should be the agent's current location.
             if foundNewKnowledge:
                 merged_qtable = sampleMDPs(ith_house, goal_type, env.agent_pos, env.agent_dir)
                 max_merged_qtable = np.max(merged_qtable, 4)
 
-            if done:
-                break
+
 
         print('roomtypeToObject:',roomtypeToObject)
         print('RoomToTypeProb: ', RoomToTypeProb)
