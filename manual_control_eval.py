@@ -34,7 +34,7 @@ def reset2():
         #window.set_caption(env.mission)
     redraw(obs)
 
-def step(action, index=0):
+def step(action, index=0, eval=False):
     obs, reward, done, info = env.step(action)
     print('step=%s, reward=%.2f' % (env.step_count, reward))
     obs['house'] = index
@@ -42,7 +42,10 @@ def step(action, index=0):
     '''
     sanity check
     '''
-    foundNewKnowledge = updateKnowledge(env, obs, index)
+    if eval:
+        foundNewKnowledge = updateKnowledge_eval(env, obs, index)
+    else:
+        foundNewKnowledge = updateKnowledge(env, obs, index)
 
     redraw(obs)
 
@@ -548,7 +551,7 @@ for iter in range(eval_num):
                             # we select an action that has the highest value from the smapled MDPs
                             a = np.argmax(max_merged_qtable[state[0], state[1], state[2], :])
                             # then we take a step, after taking a step, we will know if we have found some new knowledge.
-                            obs, reward, done, info, foundNewKnowledge = step(a, ith_house)
+                            obs, reward, done, info, foundNewKnowledge = step(a, ith_house, eval=True)
 
                             state = [env.agent_pos[0], env.agent_pos[1], env.agent_dir]
 
@@ -614,7 +617,7 @@ for iter in range(eval_num):
             #print('RoomToTypeProb: ', RoomToTypeProb)
             #print('houseLocToObject:', houseLocToObject)
     reward_set = reward_set
-    np.save("2rew1new78_{ith}.npy".format(ith=iter), reward_set)
+    np.save("1rew1new78_{ith}.npy".format(ith=iter), reward_set)
         #print("Finished!")
 
 #print("epi_rew:",reward_set/eval_num)
