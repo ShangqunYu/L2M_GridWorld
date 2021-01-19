@@ -488,10 +488,10 @@ def updateKnowledge(env, obs, ith_house):
 
 #########################################main loop####################################
 #each house we visit several times:
-eval_num = 40
+eval_num = 50
 #reward_set = np.zeros((args.num_envs, 5))
 for iter in range(eval_num):
-    reward_set = np.zeros((args.num_envs + 6, 78))
+    reward_set = np.zeros((args.num_envs + 6, 60))
     for j in range(args.num_envs):
         env = gym.make(args.env)
         env_set.append(env)
@@ -526,13 +526,14 @@ for iter in range(eval_num):
             #we reset the house environment, which doesn't change the room layout, some minor issues with object
             if ith_house in eval_env_index:
                 for house in range(len(eval_env_set)):
-                    houseRoomToType[ith_house,:] = houseRoomToType[ith_house,:] * 0
-                    houseLocToObject[ith_house, :, :] = houseLocToObject[ith_house, :, :] * 0
                     env = eval_env_set[house]
                     temp_goal = env.goal_type
-                    index = np.random.choice(len(env.goal_set))
-                    env.goal_type = env.goal_set[index]
-                    for episode in range(13):
+                    for episode in range(10):
+                        houseRoomToType[ith_house, :] = houseRoomToType[ith_house, :] * 0
+                        houseLocToObject[ith_house, :, :] = houseLocToObject[ith_house, :, :] * 0
+
+                        index = np.random.choice(len(env.goal_set))
+                        env.goal_type = env.goal_set[index]
                         e_reward = 0
                         obs = env.reset2()
                         # figure out what kind of goal we have
@@ -563,11 +564,11 @@ for iter in range(eval_num):
                             if foundNewKnowledge:
                                 merged_qtable = sampleMDPs(ith_house, goal_type, env.agent_pos, env.agent_dir)
                                 max_merged_qtable = np.max(merged_qtable, 4)
-                        reward_set[ith_house//60 + args.num_envs, house * 13 + episode] += e_reward
+                        reward_set[ith_house//60 + args.num_envs, house * 10 + episode] += e_reward
                     env.goal_type = temp_goal
                 houseRoomToType[ith_house, :] = houseRoomToType[ith_house, :] * 0
                 houseLocToObject[ith_house, :, :] = houseLocToObject[ith_house, :, :] * 0
-            for episode in range(78):
+            for episode in range(60):
                 e_reward = 0
                 obs = env.reset2()
                 #figure out what kind of goal we have
@@ -617,7 +618,7 @@ for iter in range(eval_num):
             #print('RoomToTypeProb: ', RoomToTypeProb)
             #print('houseLocToObject:', houseLocToObject)
     reward_set = reward_set
-    np.save("1rew1new78_{ith}.npy".format(ith=iter), reward_set)
+    np.save("2rew1new60_{ith}.npy".format(ith=iter), reward_set)
         #print("Finished!")
 
 #print("epi_rew:",reward_set/eval_num)
