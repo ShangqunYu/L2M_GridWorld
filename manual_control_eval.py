@@ -418,7 +418,7 @@ def updateKnowledge_eval(env, obs, ith_house):
     # print(observed_info)
     # print(houseLocToObject[ith_house,:,:])
     # print("whether have new knowledge:", foundNewKnowledge)
-    # return foundNewKnowledge
+    return foundNewKnowledge
         
     
     
@@ -482,7 +482,7 @@ def updateKnowledge(env, obs, ith_house):
     #print(observed_info)
     #print(houseLocToObject[ith_house,:,:])
     #print("whether have new knowledge:", foundNewKnowledge)
-    #return foundNewKnowledge
+    return foundNewKnowledge
 
 
 
