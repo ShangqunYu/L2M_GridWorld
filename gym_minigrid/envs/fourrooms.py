@@ -18,7 +18,7 @@ class FourRoomsEnv(MiniGridEnv):
         self.fixed_room_dist = fixed_room_dist
         goal_typeset = ['ball','box1', 'box2']
 
-        print(test)
+        #print(test)
 
         self.room_set = []
         super().__init__(grid_size=13, max_steps=1000,agent_view_size=3, goal_type=goal_typeset)
