@@ -36,12 +36,9 @@ def reset2():
 
 def step(action, index=0, eval=False):
     obs, reward, done, info = env.step(action)
-    print('step=%s, reward=%.2f' % (env.step_count, reward))
+    #print('step=%s, reward=%.2f' % (env.step_count, reward))
     obs['house'] = index
-    print('obs:', obs)
-    '''
-    sanity check
-    '''
+
     if eval:
         foundNewKnowledge = updateKnowledge_eval(env, obs, index)
     else:
@@ -51,7 +48,8 @@ def step(action, index=0, eval=False):
 
 
     if done:
-        print('done!')
+        pass
+        #print('done!')
         #reset2()
 
     return obs, reward, done, info, foundNewKnowledge
@@ -178,9 +176,6 @@ gamma = 0.95
 
 
 
-#test
-
-
 #currently, items can only be at the following locations. 
 #location (x, y) means at x row, y column.
 #                 room0   room1     room2   room3
@@ -211,7 +206,6 @@ def sampleObjects(ith_house, rooms):
         for ith_object in range(len(objects_in_rooms[ith_room])):
             location = object_locations[ith_object][ith_room]
             #value 0 means we don't have any previous info about that location, 
-            print("sampling, key location ", location[0], location[1],' has ', houseLocToObject[ith_house, location[0], location[1]])
             if houseLocToObject[ith_house, location[0], location[1]]== 0:
                 #so we sample a distribution based on the prior and then take a guess based on the distribution
                 #roomtypeToObject[rooms[ith_room], ith_object] records how many times an item doesn't show up in a room vs show up in a room
@@ -219,13 +213,10 @@ def sampleObjects(ith_house, rooms):
                 objects_in_rooms[ith_room, ith_object] = np.random.choice(2, p=prob)
             #if we know there is nothing in the location, then we don't sample, we know there is nothing there
             elif houseLocToObject[ith_house, location[0], location[1]] == 1:
-                print("object is not there, location: ", location[0], ' ',location[1])
                 objects_in_rooms[ith_room, ith_object] = 0
             #otherwise, we know for sure the item is there. 
             else:
-                print("object is there, location: ", location[0], ' ',location[1])
                 objects_in_rooms[ith_room, ith_object] = 1
-        print('room ', ith_room, ' is a type ', rooms[ith_room], ' room and it has ', objects_in_rooms[ith_room])
 
     return objects_in_rooms
 
@@ -248,7 +239,6 @@ def value_iteration(num_iterations, env):
         newstate = np.concatenate([V.reshape((-1)), Q.reshape((-1))])
         diff = newstate - oldstate
         diffnorm = np.linalg.norm(diff, ord=2)
-        #print(i, ' iterations!!!!!!!!!!!!!!!!!!!!!!!', ' diffnorm: ', diffnorm)
         #if the update is very small, we assume it converged. 
         #also if there is no target object in the house, it will end in the first iteration as well. 
         if diffnorm < 0.01:
@@ -268,14 +258,11 @@ def bellman_update(V, Q, env):
                     #if it is the goal state, we don't give it a value
 
                     if env.grid.get(front_position[0], front_position[1])!= None and env.grid.get(front_position[0], front_position[1]).type == env.goal_type:
-                        #print(env.goal_type, ' is in front of me!! at ', front_position[0], ' ', front_position[1], 'my position is ', i,' ', j,' ', k)
                         continue
                     else:
                         for ai in range(3):
                             s_prime = transition(env, s, ai)
-                            #print('s: ',s, 'action: ', ai, 's_prime:', s_prime)
                             Q[i, j, k, ai] = rewardFunc(env, s, ai, s_prime) + gamma * V[s_prime]
-                        #print(Q[s])
                         V[s] = Q[s].max()
 def rewardFunc(env, s, ai, s_prime):
     front_position = front_pos(env, s_prime[0], s_prime[1], s_prime[2])
@@ -283,7 +270,6 @@ def rewardFunc(env, s, ai, s_prime):
         return 0
     else:
         if env.grid.get(front_position[0], front_position[1]).type == env.goal_type:
-            #print('you got reward here!! at : ', s_prime)
             return 1
         else:
             return 0
@@ -344,37 +330,14 @@ def sampleMDPs(ith_house, goal_type, starting_pos, starting_dir):
         #and then we set the environment into what we have sampled
         imaginingHouse.recreate(objects_in_rooms,rooms,goal_type)
 
-        #testing
         V, Q = value_iteration(60, imaginingHouse)
-        '''
-        #sanity check, after solved the mdp ,check if it works
-        obs = imaginingHouse.reset2()
 
-        state = [imaginingHouse.agent_pos[0], imaginingHouse.agent_pos[1], imaginingHouse.agent_dir]
-
-        
-        for i in range(50):
-            a = np.argmax(Q[state[0], state[1], state[2], :])
-            print('current location: ', state, ' q values: ',Q[state[0], state[1], state[2], :],' action taking: ', a)
-            obs, reward, done, info = imaginingHouse.step(a)
-            img = imaginingHouse.render('rgb_array', tile_size=args.tile_size)
-            window.show_img(img)
-            if done == True:
-                obs = imaginingHouse.reset2()
-                print("get to the target!!!!")
-                break
-
-            new_state = [imaginingHouse.agent_pos[0], imaginingHouse.agent_pos[1], imaginingHouse.agent_dir]
-
-            state = new_state
-        '''
         #after we solve each MDP, we append it into a group
         qtables.append(np.expand_dims(Q, 4))
     
     #Then we merge all the q tables, the shape(width, height, num_directions, num_actions, K)
     merged_qtable = np.concatenate(qtables, axis = 4)
 
-    print('marges qtable shape: ', merged_qtable.shape)
 
     #shape of merged qtable is (width, height, orientaion, action, K)
     return merged_qtable
@@ -413,11 +376,6 @@ def updateKnowledge_eval(env, obs, ith_house):
         houseRoomToType[ith_house, obs['room']] = obs['roomtype']
         foundNewKnowledge = True
         # also update our prior,
-    # print(houseRoomToType[ith_house,:])
-
-    # print(observed_info)
-    # print(houseLocToObject[ith_house,:,:])
-    # print("whether have new knowledge:", foundNewKnowledge)
     return foundNewKnowledge
         
     
@@ -477,11 +435,7 @@ def updateKnowledge(env, obs, ith_house):
         foundNewKnowledge = True
         #also update our prior, 
         RoomToTypeProb[obs['room'],obs['roomtype']] += 1
-    #print(houseRoomToType[ith_house,:])
 
-    #print(observed_info)
-    #print(houseLocToObject[ith_house,:,:])
-    #print("whether have new knowledge:", foundNewKnowledge)
     return foundNewKnowledge
 
 
@@ -491,6 +445,7 @@ def updateKnowledge(env, obs, ith_house):
 eval_num = 50
 #reward_set = np.zeros((args.num_envs, 5))
 for iter in range(eval_num):
+    print('iter: ', iter)
     reward_set = np.zeros((args.num_envs + 6, 60))
     for j in range(args.num_envs):
         env = gym.make(args.env)
@@ -516,6 +471,7 @@ for iter in range(eval_num):
     for ith_visit in range(args.num_visitsPerHouse):
         #loop through all the houses:
         for ith_house in range(args.num_envs):
+            print('house: ', ith_house)
 
             env = env_set[ith_house]
             if args.agent_view:
@@ -569,22 +525,13 @@ for iter in range(eval_num):
                 houseRoomToType[ith_house, :] = houseRoomToType[ith_house, :] * 0
                 houseLocToObject[ith_house, :, :] = houseLocToObject[ith_house, :, :] * 0
             for episode in range(60):
+                print('episode: ', episode, end = ' ', flush=True)
                 e_reward = 0
                 obs = env.reset2()
                 #figure out what kind of goal we have
                 goal_type = env.goal_type
 
                 state = [env.agent_pos[0], env.agent_pos[1], env.agent_dir]
-
-                #testing code
-                for j in range(env.grid.height):
-                    tempString = ""
-                    for i in range(env.grid.width):
-                        if env.grid.get(i,j) == None:
-                            tempString += 'null' + ' '
-                        else:
-                            tempString += str(env.grid.get(i,j).type) + ' '
-                    print(tempString)
 
 
                 #after we get into a house, first of all we will sample K mdps based on past experience.
@@ -594,7 +541,7 @@ for iter in range(eval_num):
 
                 for i in range(20):
 
-                    print('check under current state, value: ', max_merged_qtable[state[0], state[1], state[2], :])
+                    #print('check under current state, value: ', max_merged_qtable[state[0], state[1], state[2], :])
                     #we select an action that has the highest value from the smapled MDPs
                     a = np.argmax(max_merged_qtable[state[0], state[1], state[2], :])
                     #then we take a step, after taking a step, we will know if we have found some new knowledge.
@@ -611,19 +558,11 @@ for iter in range(eval_num):
                         merged_qtable = sampleMDPs(ith_house, goal_type, env.agent_pos, env.agent_dir)
                         max_merged_qtable = np.max(merged_qtable, 4)
                 reward_set[ith_house, episode] += e_reward
-                #print('tem_rew:', reward_set)
+            print(" ")
 
-
-            #print('roomtypeToObject:',roomtypeToObject)
-            #print('RoomToTypeProb: ', RoomToTypeProb)
-            #print('houseLocToObject:', houseLocToObject)
     reward_set = reward_set
     np.save("2rew1new60_{ith}.npy".format(ith=iter), reward_set)
-        #print("Finished!")
 
-#print("epi_rew:",reward_set/eval_num)
-#reward_set = reward_set/eval_num
-#np.save("rew4.npy", reward_set)
 
 
 
