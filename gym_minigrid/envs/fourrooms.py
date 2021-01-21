@@ -18,7 +18,7 @@ class FourRoomsEnv(MiniGridEnv):
         self.fixed_room_dist = fixed_room_dist
         goal_typeset = ['ball','box1', 'box2']
 
-        #print(test)
+        print(test)
 
         self.room_set = []
         super().__init__(grid_size=13, max_steps=1000,agent_view_size=3, goal_type=goal_typeset)
@@ -30,7 +30,7 @@ class FourRoomsEnv(MiniGridEnv):
             dtype='uint8'
         )
     # defalut is the starting position, but for imagined mdps, we may want to modify the starting position
-    def reset2(self, agent_pos = (7, 1), agent_dir = 1):
+    def reset2(self, agent_pos = (7, 1), agent_dir = 2):
         # Current position and direction of the agent
         self.agent_pos = agent_pos
         self.grid.set(agent_pos[0], agent_pos[1], None)
@@ -112,7 +112,7 @@ class FourRoomsEnv(MiniGridEnv):
     def setAgentStartPos(self):
         self.agent_pos = (7,1)
         self.grid.set(7,1, None)
-        self.agent_dir = 1          
+        self.agent_dir = 2
 
     def _gen_grid(self, width, height):
         # Create the grid
@@ -223,12 +223,13 @@ class FourRoomsEnv(MiniGridEnv):
             if 'box' not in self.goal_set:
                 self.goal_set.append('box')
         if np.random.random() < probs_box2:
-            self.put_obj(Box2(), top_x+2, top_y+2)
+            self.put_obj(Box2(), top_x+1, top_y+4)
             if 'box2' not in self.goal_set:
                 self.goal_set.append('box2')
 
     def step(self, action):
         obs, reward, done, info = MiniGridEnv.step(self, action)
+        print("obs:",obs)
         #obs['image'] = np.array(obs['image']).flatten()
         obs['pos'] = np.array(obs['pos']).flatten()
         if obs['pos'][0] < 6 and obs['pos'][1] < 6:
