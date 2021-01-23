@@ -577,6 +577,7 @@ class Grid:
                         #array[i, j, 2] = 0
 
                     else:
+
                         array[i, j] = v.encode()
 
         return array
@@ -702,7 +703,7 @@ class MiniGridEnv(gym.Env):
         self.observation_space = spaces.Box(
             low=0,
             high=5,
-            shape=(self.agent_view_size, self.agent_view_size-1),
+            shape=(self.agent_view_size-2, self.agent_view_size-1),
             dtype='uint8'
         )
 
@@ -1047,7 +1048,7 @@ class MiniGridEnv(gym.Env):
 
         # Compute the absolute coordinates of the top-left view corner
         sz = self.agent_view_size -1
-        hs = self.agent_view_size // 2
+        hs = self.agent_view_size // 2 -1
         tx = ax + (dx * (sz-1)) - (rx * hs)
         ty = ay + (dy * (sz-1)) - (ry * hs)
 
@@ -1070,26 +1071,26 @@ class MiniGridEnv(gym.Env):
         # Facing right
         if self.agent_dir == 0:
             topX = self.agent_pos[0]
-            topY = self.agent_pos[1] - self.agent_view_size // 2
+            topY = self.agent_pos[1]
             botX = topX + self.agent_view_size-1
-            botY = topY + self.agent_view_size
+            botY = topY + 1
         # Facing down
         elif self.agent_dir == 1:
-            topX = self.agent_pos[0] - self.agent_view_size // 2
+            topX = self.agent_pos[0]
             topY = self.agent_pos[1]
-            botX = topX + self.agent_view_size
+            botX = topX + 1
             botY = topY + self.agent_view_size-1
         # Facing left
         elif self.agent_dir == 2:
             topX = self.agent_pos[0] - self.agent_view_size
-            topY = self.agent_pos[1] - self.agent_view_size // 2
+            topY = self.agent_pos[1]
             botX = topX + self.agent_view_size-1
-            botY = topY + self.agent_view_size
+            botY = topY + 1
         # Facing up
         elif self.agent_dir == 3:
-            topX = self.agent_pos[0] - self.agent_view_size // 2
+            topX = self.agent_pos[0]
             topY = self.agent_pos[1] - self.agent_view_size
-            botX = topX + self.agent_view_size
+            botX = topX + 1
             botY = topY + self.agent_view_size-1
         else:
             assert False, "invalid agent direction"
@@ -1217,16 +1218,17 @@ class MiniGridEnv(gym.Env):
         topX, topY, botX, botY = self.get_view_exts()
 
         grid = self.grid.slice(topX, topY, botX, botY)
-
+        #print("wid:", grid.width)
+        #print("l:",grid.height)
         for i in range(self.agent_dir + 1):
             grid = grid.rotate_left()
 
         # Process occluders and visibility
         # Note that this incurs some performance cost
-        if not self.see_through_walls:
-            vis_mask = grid.process_vis(agent_pos=(self.agent_view_size // 2 , self.agent_view_size - 2))
-        else:
-            vis_mask = np.ones(shape=(grid.width, grid.height), dtype=np.bool)
+        #if not self.see_through_walls:
+        #    vis_mask = grid.process_vis(agent_pos=(self.agent_view_size // 2 -1, self.agent_view_size - 2))
+        #else:
+        vis_mask = np.ones(shape=(grid.width, grid.height), dtype=np.bool)
 
         # Make it so the agent sees what it's carrying
         # We do this by placing the carried object at the agent's position
@@ -1271,7 +1273,7 @@ class MiniGridEnv(gym.Env):
         # Render the whole grid
         img = grid.render(
             tile_size,
-            agent_pos=(self.agent_view_size // 2, self.agent_view_size - 1),
+            agent_pos=(self.agent_view_size // 2-1, self.agent_view_size - 1),
             agent_dir=3,
             highlight_mask=vis_mask
         )
@@ -1300,14 +1302,14 @@ class MiniGridEnv(gym.Env):
         # of the agent's view area
         f_vec = self.dir_vec
         r_vec = self.right_vec
-        top_left = self.agent_pos + f_vec * (self.agent_view_size-2) - r_vec * (self.agent_view_size // 2)
+        top_left = self.agent_pos + f_vec * (self.agent_view_size-2) - r_vec * (self.agent_view_size // 2-1)
 
         # Mask of which cells to highlight
         highlight_mask = np.zeros(shape=(self.width, self.height), dtype=np.bool)
 
         # For each cell in the visibility mask
         for vis_j in range(0, self.agent_view_size-1):
-            for vis_i in range(0, self.agent_view_size):
+            for vis_i in range(0, self.agent_view_size-2):
                 # If this cell is not visible, don't highlight it
                 if not vis_mask[vis_i, vis_j]:
                     continue
