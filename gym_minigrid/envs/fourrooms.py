@@ -174,17 +174,17 @@ class FourRoomsEnv(MiniGridEnv):
         else:
             tops = [[1,1],[1,7],[7,1],[7,7]]
             # distribution of roomtype for each room. 
-            p = [[0.8, 0., 0.2], [0., 1.0, 0.], [0.2, 0., 0.8], [0.7, 0., 0.3]]
+            p = [[0., 0., 0.8, 0.2], [0., 1.0, 0., 0.], [0.9, 0., 0.1, 0.], [0., 0., 0.2, 0.8]]
 
             for i in range(4):
                 top_i = tops[i]
                 p_i = p[i]
-                room_i = np.random.choice(3, p=p[i])
+                room_i = np.random.choice(4, p=p[i])
                 if room_i == 0:
                     self.Room2(top_i[0], top_i[1])
                 elif room_i == 1:
                     self.Room3(top_i[0], top_i[1])
-                else:
+                elif room_i == 2:
                     self.Room4(top_i[0], top_i[1])
                 self.room_set.append(room_i)
         self.mission = 'Reach the goal'
@@ -204,14 +204,14 @@ class FourRoomsEnv(MiniGridEnv):
             self.put_obj(Box(self.color2), top_x, top_y+4)
     #room2 80% has ball, 20% has box, 5% has box2
     def Room2(self, top_x=7, top_y=1):
-        self.putObjectsInRoom(top_x, top_y, 0.2, 0.8, 0.)
+        self.putObjectsInRoom(top_x, top_y, 0., 0.2, 0.)
 
     #room3 20% has ball, 5% has box, 80% has box2
     def Room3(self, top_x=1, top_y=7):
-        self.putObjectsInRoom(top_x, top_y, 0., 0., 1.)
+        self.putObjectsInRoom(top_x, top_y, 0., 0.8, 1.)
     #room4 5% has ball, 80 has box, 20% has box2
     def Room4(self, top_x=7, top_y=7):
-        self.putObjectsInRoom(top_x, top_y, 0.8, 0.2, 0.)
+        self.putObjectsInRoom(top_x, top_y, 1., 0., 0.)
 
     def putObjectsInRoom(self, top_x, top_y, probs_ball, probs_box, probs_box2):
         if np.random.random() < probs_ball:
