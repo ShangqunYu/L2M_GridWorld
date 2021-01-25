@@ -448,11 +448,15 @@ class Grid:
         for j in range(0, height):
             for i in range(0, width):
                 x = topX + i
-                y = topY + j
 
+
+                y = topY + j
+                #print("x:", x)
+                #print("y:", y)
                 if x >= 0 and x < self.width and \
                    y >= 0 and y < self.height:
                     v = self.get(x, y)
+                    #print('v:', v)
                 else:
                     v = Wall()
 
@@ -1089,19 +1093,18 @@ class MiniGridEnv(gym.Env):
             botY = topY + self.agent_view_size-1
         # Facing left
         elif self.agent_dir == 2:
-            topX = self.agent_pos[0] - self.agent_view_size
+            topX = self.agent_pos[0] - self.agent_view_size + 2
             topY = self.agent_pos[1]
             botX = topX + self.agent_view_size-1
             botY = topY + 1
         # Facing up
         elif self.agent_dir == 3:
             topX = self.agent_pos[0]
-            topY = self.agent_pos[1] - self.agent_view_size
+            topY = self.agent_pos[1] - self.agent_view_size + 2
             botX = topX + 1
             botY = topY + self.agent_view_size-1
         else:
             assert False, "invalid agent direction"
-
 
 
         return (topX, topY, botX, botY)
@@ -1240,7 +1243,8 @@ class MiniGridEnv(gym.Env):
         # Make it so the agent sees what it's carrying
         # We do this by placing the carried object at the agent's position
         # in the agent's partially observable view
-        agent_pos = grid.width // 2, grid.height - 2
+
+        agent_pos = grid.width // 2, grid.height -1
         #print("pos:", agent_pos)
         if self.carrying:
             grid.set(*agent_pos, self.carrying)
@@ -1281,7 +1285,7 @@ class MiniGridEnv(gym.Env):
         # Render the whole grid
         img = grid.render(
             tile_size,
-            agent_pos=(self.agent_view_size // 2-1, self.agent_view_size - 1),
+            agent_pos=(self.agent_view_size // 2-1, self.agent_view_size - 3),
             agent_dir=3,
             highlight_mask=vis_mask
         )
