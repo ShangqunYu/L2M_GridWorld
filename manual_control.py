@@ -10,10 +10,11 @@ from gym_minigrid.window import Window
 
 
 def redraw(img):
-    if not args.agent_view:
-       img = env.render('rgb_array', tile_size=args.tile_size)
+    #if not args.agent_view:
+    #   img = env.render('rgb_array', tile_size=args.tile_size)
 
-    window.show_img(img)
+    #window.show_img(img)
+
     pass
 
 
@@ -269,13 +270,13 @@ def bellman_update(V, Q, envs):
     for i in range(args.env_width):
         for j in range(args.env_height):
             #we only update states whose location is not occupied by walls or objects.
-            for m in range(args.K):
 
-                # we only update states whose location is not occupied by walls or objects.
-                if envs[m].grid.get(i, j) == None:
                     # four different orientations
-                    for k in range(4):
+            for k in range(4):
+                for m in range(args.K):
 
+                    # we only update states whose location is not occupied by walls or objects.
+                    if envs[m].grid.get(i, j) == None:
                         s = (i, j, k)
 
                         # if the state is a goal state in any of the mdps, we don't give it a value
@@ -384,11 +385,12 @@ def updateKnowledge_eval(env, obs, ith_house):
     f_vec = env.dir_vec
     r_vec = env.right_vec
     top_left = env.agent_pos + f_vec * (env.agent_view_size - 2) - r_vec * (env.agent_view_size // 2-1)
+
     observed_info = np.zeros((env.grid.width, env.grid.height), dtype=np.int8)
     for vis_j in range(0, env.agent_view_size-1):
         for vis_i in range(0, env.agent_view_size-2):
 
-            abs_i, abs_j = top_left - (f_vec * vis_j) + (r_vec * vis_i)
+            abs_j, abs_i = top_left - (f_vec * vis_j) + (r_vec * vis_i)
             # the view can't go beyond the space of the environment.
             if abs_i < 0 or abs_i >= env.width:
                 continue
@@ -402,7 +404,8 @@ def updateKnowledge_eval(env, obs, ith_house):
             if observed_info[abs_j, abs_i] != 0 and observed_info[abs_j, abs_i] != houseLocToObject[
                 ith_house, abs_j, abs_i]:
                 houseLocToObject[ith_house, abs_j, abs_i] = observed_info[abs_j, abs_i]
-
+                #FIXME
+                foundNewKnowledge = True
                 # if the location is where the itmes can show up, we need to update the tables based on whether
                 # we have seen objects or not. it also means we have acquired new knowledge.
 
@@ -424,7 +427,7 @@ def updateKnowledge(env, obs, ith_house):
     observed_info = np.zeros((env.grid.width, env.grid.height), dtype=np.int8)
     for vis_j in range(0, env.agent_view_size-1):
         for vis_i in range(0, env.agent_view_size-2):
-            abs_i, abs_j = top_left - (f_vec * vis_j) + (r_vec * vis_i)
+            abs_j, abs_i = top_left - (f_vec * vis_j) + (r_vec * vis_i)
             # the view can't go beyond the space of the environment.
             if abs_i < 0 or abs_i >= env.width:
                 continue
@@ -516,10 +519,13 @@ for iter in range(eval_num):
                     print('house:', eval_env_index[house], end = ' ', flush=True)
                     env = eval_env_set[house]
                     temp_goal = env.goal_type
+                    houseRoomToType[ith_house, :] = [-1, -1, -1, -1]
+                    houseLocToObject[ith_house, :, :] = houseLocToObject[ith_house, :, :] * 0
+
                     for episode in range(10):
                         print('ep:', episode, end = ' ', flush=True)
-                        houseRoomToType[ith_house, :] = [-1, -1, -1, -1]
-                        houseLocToObject[ith_house, :, :] = houseLocToObject[ith_house, :, :] * 0
+                        #houseRoomToType[ith_house, :] = [-1, -1, -1, -1]
+                        #houseLocToObject[ith_house, :, :] = houseLocToObject[ith_house, :, :] * 0
 
                         index = np.random.choice(len(env.goal_set))
                         env.goal_type = env.goal_set[index]
@@ -535,7 +541,7 @@ for iter in range(eval_num):
                         Q_max = sampleMDPs(ith_house, goal_type, env.agent_pos, env.agent_dir)
                         # in merged_qtable, each action has k values(cause we got k mdps), now we only need the max for each action.
 
-                        for i in range(200):
+                        for i in range(20):
 
                             # we select an action that has the highest value from the smapled MDPs
                             a = np.argmax(Q_max[state[0], state[1], state[2], :])
@@ -554,6 +560,8 @@ for iter in range(eval_num):
                                 Q_max = sampleMDPs(ith_house, goal_type, env.agent_pos, env.agent_dir)
                                 #max_merged_qtable = np.max(merged_qtable, 4)
                         reward_set[ith_house // 60 + args.num_envs, house * 10 + episode] += e_reward
+
+
                     env.goal_type = temp_goal
                 houseRoomToType[ith_house, :] = [-1, -1, -1, -1]
                 houseLocToObject[ith_house, :, :] = houseLocToObject[ith_house, :, :] * 0
@@ -573,7 +581,7 @@ for iter in range(eval_num):
                 # in merged_qtable, each action has k values(cause we got k mdps), now we only need the max for each action.
                 #max_merged_qtable = np.max(merged_qtable, 4)
 
-                for i in range(18):
+                for i in range(20):
 
                     # print('check under current state, value: ', max_merged_qtable[state[0], state[1], state[2], :])
                     # we select an action that has the highest value from the smapled MDPs
