@@ -285,7 +285,7 @@ def bellman_update(V, Q, envs):
                             for ai in range(3):
                                 s_prime = transition(envs[m], s, ai)
                                 # print('s: ',s, 'action: ', ai, 's_prime:', s_prime)
-                                Q[i, j, k, ai, m] = rewardFunc(env, s, ai, s_prime) + gamma * V[s_prime]
+                                Q[i, j, k, ai, m] = rewardFunc(envs[m], s, ai, s_prime) + gamma * V[s_prime]
                             # print(Q[s])
                             V[s] = Q[s].max()
 
@@ -387,6 +387,7 @@ def updateKnowledge_eval(env, obs, ith_house):
     observed_info = np.zeros((env.grid.width, env.grid.height), dtype=np.int8)
     for vis_j in range(0, env.agent_view_size-1):
         for vis_i in range(0, env.agent_view_size-2):
+
             abs_i, abs_j = top_left - (f_vec * vis_j) + (r_vec * vis_i)
             # the view can't go beyond the space of the environment.
             if abs_i < 0 or abs_i >= env.width:
@@ -395,6 +396,7 @@ def updateKnowledge_eval(env, obs, ith_house):
                 continue
             # NOTE!!! indices in numpy table and the actual location coordinate indices are different
             observed_info[abs_j, abs_i] = obs['image'][vis_i, vis_j]
+            print(abs_j, abs_i)
             # if the observed info is zero, it means we can't see it through the wall, so don't update,
             # and if we already know the information, then we also don't have to update.
             if observed_info[abs_j, abs_i] != 0 and observed_info[abs_j, abs_i] != houseLocToObject[
@@ -509,13 +511,13 @@ for iter in range(eval_num):
                 env = ImgObsWrapper(env)
             # we reset the house environment, which doesn't change the room layout, some minor issues with object
             if ith_house in eval_env_index:
-                #print('evaluating:', end = ' ', flush=True)
+                print('evaluating:', end = ' ', flush=True)
                 for house in range(len(eval_env_set)):
-                    #print('house:', eval_env_index[house], end = ' ', flush=True)
+                    print('house:', eval_env_index[house], end = ' ', flush=True)
                     env = eval_env_set[house]
                     temp_goal = env.goal_type
                     for episode in range(10):
-                        #print('ep:', episode, end = ' ', flush=True)
+                        print('ep:', episode, end = ' ', flush=True)
                         houseRoomToType[ith_house, :] = [-1, -1, -1, -1]
                         houseLocToObject[ith_house, :, :] = houseLocToObject[ith_house, :, :] * 0
 
@@ -525,6 +527,7 @@ for iter in range(eval_num):
                         obs = env.reset2()
                         # figure out what kind of goal we have
                         goal_type = env.goal_type
+                        print('the goal is:', goal_type)
 
                         state = [env.agent_pos[0], env.agent_pos[1], env.agent_dir]
 
@@ -532,7 +535,7 @@ for iter in range(eval_num):
                         Q_max = sampleMDPs(ith_house, goal_type, env.agent_pos, env.agent_dir)
                         # in merged_qtable, each action has k values(cause we got k mdps), now we only need the max for each action.
 
-                        for i in range(20):
+                        for i in range(200):
 
                             # we select an action that has the highest value from the smapled MDPs
                             a = np.argmax(Q_max[state[0], state[1], state[2], :])
@@ -547,6 +550,7 @@ for iter in range(eval_num):
                             # if we have found new knowledge, then we need to re sample those mdps based on the new knowledge
                             # Our starting position for the agent in those mdps should be the agent's current location.
                             if foundNewKnowledge:
+                                print('found new knowledge')
                                 Q_max = sampleMDPs(ith_house, goal_type, env.agent_pos, env.agent_dir)
                                 #max_merged_qtable = np.max(merged_qtable, 4)
                         reward_set[ith_house // 60 + args.num_envs, house * 10 + episode] += e_reward
