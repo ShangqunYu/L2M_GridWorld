@@ -608,13 +608,19 @@ class Grid:
         mask = np.zeros(shape=(grid.width, grid.height), dtype=np.bool)
 
         mask[agent_pos[0], agent_pos[1]] = True
+        cell = grid.get(agent_pos[0], agent_pos[1]-1)
 
-        for j in reversed(range(0, grid.height)):
+        if cell and not cell.see_behind():
+            mask[agent_pos[0], agent_pos[1] - 1] = False
+        else:
+            mask[agent_pos[0], agent_pos[1] - 1] = True
+        '''for j in reversed(range(0, grid.height)):
             for i in range(0, grid.width-1):
                 if not mask[i, j]:
                     continue
 
                 cell = grid.get(i, j)
+
                 if cell and not cell.see_behind():
                     continue
 
@@ -634,7 +640,7 @@ class Grid:
                 mask[i-1, j] = True
                 if j > 0:
                     mask[i-1, j-1] = True
-                    mask[i, j-1] = True
+                    mask[i, j-1] = True'''
 
         for j in range(0, grid.height):
             for i in range(0, grid.width):
@@ -1069,6 +1075,7 @@ class MiniGridEnv(gym.Env):
         """
 
         # Facing right
+        #print("pos:",self.agent_pos)
         if self.agent_dir == 0:
             topX = self.agent_pos[0]
             topY = self.agent_pos[1]
@@ -1225,10 +1232,10 @@ class MiniGridEnv(gym.Env):
 
         # Process occluders and visibility
         # Note that this incurs some performance cost
-        #if not self.see_through_walls:
-        #    vis_mask = grid.process_vis(agent_pos=(self.agent_view_size // 2 -1, self.agent_view_size - 2))
-        #else:
-        vis_mask = np.ones(shape=(grid.width, grid.height), dtype=np.bool)
+        if not self.see_through_walls:
+            vis_mask = grid.process_vis(agent_pos=(self.agent_view_size // 2 -1, self.agent_view_size - 2))
+        else:
+            vis_mask = np.ones(shape=(grid.width, grid.height), dtype=np.bool)
 
         # Make it so the agent sees what it's carrying
         # We do this by placing the carried object at the agent's position
@@ -1250,6 +1257,7 @@ class MiniGridEnv(gym.Env):
         grid, vis_mask = self.gen_obs_grid()
         #print('grid:', grid)
         # Encode the partially observable view into a numpy array
+
         image = grid.encode(vis_mask)
         #print('image:', image)
         assert hasattr(self, 'mission'), "environments must define a textual mission string"
