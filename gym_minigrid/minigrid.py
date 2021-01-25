@@ -608,12 +608,12 @@ class Grid:
         mask = np.zeros(shape=(grid.width, grid.height), dtype=np.bool)
 
         mask[agent_pos[0], agent_pos[1]] = True
-        cell = grid.get(agent_pos[0], agent_pos[1]-1)
+        cell = grid.get(agent_pos[0], agent_pos[1]+1)
 
         if cell and not cell.see_behind():
-            mask[agent_pos[0], agent_pos[1] - 1] = False
+            mask[agent_pos[0], agent_pos[1] + 1] = False
         else:
-            mask[agent_pos[0], agent_pos[1] - 1] = True
+            mask[agent_pos[0], agent_pos[1] + 1] = True
         '''for j in reversed(range(0, grid.height)):
             for i in range(0, grid.width-1):
                 if not mask[i, j]:
@@ -1233,7 +1233,7 @@ class MiniGridEnv(gym.Env):
         # Process occluders and visibility
         # Note that this incurs some performance cost
         if not self.see_through_walls:
-            vis_mask = grid.process_vis(agent_pos=(self.agent_view_size // 2 -1, self.agent_view_size - 2))
+            vis_mask = grid.process_vis(agent_pos=(self.agent_view_size // 2 -1, self.agent_view_size - 3))
         else:
             vis_mask = np.ones(shape=(grid.width, grid.height), dtype=np.bool)
 
