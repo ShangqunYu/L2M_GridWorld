@@ -519,13 +519,13 @@ for iter in range(eval_num):
                     #print('house:', eval_env_index[house], end = ' ', flush=True)
                     env = eval_env_set[house]
                     temp_goal = env.goal_type
-                    houseRoomToType[ith_house, :] = [-1, -1, -1, -1]
-                    houseLocToObject[ith_house, :, :] = houseLocToObject[ith_house, :, :] * 0
+                    #houseRoomToType[ith_house, :] = [-1, -1, -1, -1]
+                    #houseLocToObject[ith_house, :, :] = houseLocToObject[ith_house, :, :] * 0
 
                     for episode in range(10):
                         #print('ep:', episode, end = ' ', flush=True)
-                        #houseRoomToType[ith_house, :] = [-1, -1, -1, -1]
-                        #houseLocToObject[ith_house, :, :] = houseLocToObject[ith_house, :, :] * 0
+                        houseRoomToType[ith_house, :] = [-1, -1, -1, -1]
+                        houseLocToObject[ith_house, :, :] = houseLocToObject[ith_house, :, :] * 0
 
                         index = np.random.choice(len(env.goal_set))
                         env.goal_type = env.goal_set[index]
