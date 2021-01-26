@@ -14,6 +14,7 @@ def redraw(img):
     #   img = env.render('rgb_array', tile_size=args.tile_size)
 
     #window.show_img(img)
+
     pass
 
 
@@ -140,7 +141,7 @@ parser.add_argument(
     '--num_roomtypes',
     type=int,
     help="number of roomtypes",
-    default=3
+    default=4
 )
 parser.add_argument(
     '--num_objects',
@@ -196,9 +197,9 @@ gamma = 0.95
 # currently, items can only be at the following locations.
 # location (x, y) means at x row, y column.
 #                 room0   room1     room2   room3
-ball_locations = [(5, 5), (11, 5), (5, 11), (11, 11)]
-box_locations = [(5, 1), (11, 1), (5, 7), (11, 7)]
-box2_locations = [(2, 5), (8, 5), (2, 11), (8, 11)]
+ball_locations = [(5, 5), (5, 11), (11, 5), (11, 11)]
+box_locations = [(5, 1), (5, 7), (11, 1), (11, 7)]
+box2_locations = [(2, 5), (2, 11), (8, 5), (8, 11)]
 # all locations that may contain target object
 object_locations = [ball_locations, box_locations, box2_locations]
 
@@ -269,13 +270,13 @@ def bellman_update(V, Q, envs):
     for i in range(args.env_width):
         for j in range(args.env_height):
             #we only update states whose location is not occupied by walls or objects.
-            for m in range(args.K):
 
-                # we only update states whose location is not occupied by walls or objects.
-                if envs[m].grid.get(i, j) == None:
                     # four different orientations
-                    for k in range(4):
+            for k in range(4):
+                for m in range(args.K):
 
+                    # we only update states whose location is not occupied by walls or objects.
+                    if envs[m].grid.get(i, j) == None:
                         s = (i, j, k)
 
                         # if the state is a goal state in any of the mdps, we don't give it a value
@@ -285,7 +286,7 @@ def bellman_update(V, Q, envs):
                             for ai in range(3):
                                 s_prime = transition(envs[m], s, ai)
                                 # print('s: ',s, 'action: ', ai, 's_prime:', s_prime)
-                                Q[i, j, k, ai, m] = rewardFunc(env, s, ai, s_prime) + gamma * V[s_prime]
+                                Q[i, j, k, ai, m] = rewardFunc(envs[m], s, ai, s_prime) + gamma * V[s_prime]
                             # print(Q[s])
                             V[s] = Q[s].max()
 
@@ -383,11 +384,13 @@ def updateKnowledge_eval(env, obs, ith_house):
     # we update the table 3 based on what we have seen in the house
     f_vec = env.dir_vec
     r_vec = env.right_vec
-    top_left = env.agent_pos + f_vec * (env.agent_view_size - 2) - r_vec * (env.agent_view_size // 2)
+    top_left = env.agent_pos + f_vec * (env.agent_view_size - 2) - r_vec * (env.agent_view_size // 2-1)
+
     observed_info = np.zeros((env.grid.width, env.grid.height), dtype=np.int8)
     for vis_j in range(0, env.agent_view_size-1):
-        for vis_i in range(0, env.agent_view_size):
-            abs_i, abs_j = top_left - (f_vec * vis_j) + (r_vec * vis_i)
+        for vis_i in range(0, env.agent_view_size-2):
+
+            abs_j, abs_i = top_left - (f_vec * vis_j) + (r_vec * vis_i)
             # the view can't go beyond the space of the environment.
             if abs_i < 0 or abs_i >= env.width:
                 continue
@@ -395,12 +398,14 @@ def updateKnowledge_eval(env, obs, ith_house):
                 continue
             # NOTE!!! indices in numpy table and the actual location coordinate indices are different
             observed_info[abs_j, abs_i] = obs['image'][vis_i, vis_j]
+            print(abs_j, abs_i)
             # if the observed info is zero, it means we can't see it through the wall, so don't update,
             # and if we already know the information, then we also don't have to update.
             if observed_info[abs_j, abs_i] != 0 and observed_info[abs_j, abs_i] != houseLocToObject[
                 ith_house, abs_j, abs_i]:
                 houseLocToObject[ith_house, abs_j, abs_i] = observed_info[abs_j, abs_i]
-
+                #FIXME
+                foundNewKnowledge = True
                 # if the location is where the itmes can show up, we need to update the tables based on whether
                 # we have seen objects or not. it also means we have acquired new knowledge.
 
@@ -418,11 +423,11 @@ def updateKnowledge(env, obs, ith_house):
     # we update the table 3 based on what we have seen in the house
     f_vec = env.dir_vec
     r_vec = env.right_vec
-    top_left = env.agent_pos + f_vec * (env.agent_view_size - 2) - r_vec * (env.agent_view_size // 2)
+    top_left = env.agent_pos + f_vec * (env.agent_view_size - 2) - r_vec * (env.agent_view_size // 2-1)
     observed_info = np.zeros((env.grid.width, env.grid.height), dtype=np.int8)
     for vis_j in range(0, env.agent_view_size-1):
-        for vis_i in range(0, env.agent_view_size):
-            abs_i, abs_j = top_left - (f_vec * vis_j) + (r_vec * vis_i)
+        for vis_i in range(0, env.agent_view_size-2):
+            abs_j, abs_i = top_left - (f_vec * vis_j) + (r_vec * vis_i)
             # the view can't go beyond the space of the environment.
             if abs_i < 0 or abs_i >= env.width:
                 continue
@@ -514,10 +519,13 @@ for iter in range(eval_num):
                     #print('house:', eval_env_index[house], end = ' ', flush=True)
                     env = eval_env_set[house]
                     temp_goal = env.goal_type
+                    houseRoomToType[ith_house, :] = [-1, -1, -1, -1]
+                    houseLocToObject[ith_house, :, :] = houseLocToObject[ith_house, :, :] * 0
+
                     for episode in range(10):
                         #print('ep:', episode, end = ' ', flush=True)
-                        houseRoomToType[ith_house, :] = [-1, -1, -1, -1]
-                        houseLocToObject[ith_house, :, :] = houseLocToObject[ith_house, :, :] * 0
+                        #houseRoomToType[ith_house, :] = [-1, -1, -1, -1]
+                        #houseLocToObject[ith_house, :, :] = houseLocToObject[ith_house, :, :] * 0
 
                         index = np.random.choice(len(env.goal_set))
                         env.goal_type = env.goal_set[index]
@@ -525,6 +533,7 @@ for iter in range(eval_num):
                         obs = env.reset2()
                         # figure out what kind of goal we have
                         goal_type = env.goal_type
+                        #print('the goal is:', goal_type)
 
                         state = [env.agent_pos[0], env.agent_pos[1], env.agent_dir]
 
@@ -547,9 +556,12 @@ for iter in range(eval_num):
                             # if we have found new knowledge, then we need to re sample those mdps based on the new knowledge
                             # Our starting position for the agent in those mdps should be the agent's current location.
                             if foundNewKnowledge:
+                                #print('found new knowledge')
                                 Q_max = sampleMDPs(ith_house, goal_type, env.agent_pos, env.agent_dir)
                                 #max_merged_qtable = np.max(merged_qtable, 4)
                         reward_set[ith_house // 60 + args.num_envs, house * 10 + episode] += e_reward
+
+
                     env.goal_type = temp_goal
                 houseRoomToType[ith_house, :] = [-1, -1, -1, -1]
                 houseLocToObject[ith_house, :, :] = houseLocToObject[ith_house, :, :] * 0
@@ -569,7 +581,7 @@ for iter in range(eval_num):
                 # in merged_qtable, each action has k values(cause we got k mdps), now we only need the max for each action.
                 #max_merged_qtable = np.max(merged_qtable, 4)
 
-                for i in range(18):
+                for i in range(19):
 
                     # print('check under current state, value: ', max_merged_qtable[state[0], state[1], state[2], :])
                     # we select an action that has the highest value from the smapled MDPs
@@ -589,7 +601,7 @@ for iter in range(eval_num):
                         #max_merged_qtable = np.max(merged_qtable, 4)
                 #print('ep:', episode, 'reward:', e_reward, end = ' ', flush=True)
                 reward_set[ith_house, episode] += e_reward
-            print("average reward=", sum(reward_set[ith_house, :]) / 60)
+            #print("average reward=", sum(reward_set[ith_house, :]) / 60)
 
     reward_set = reward_set
-    np.save("2rew1new60_{ith}.npy".format(ith=iter), reward_set)
+    np.save("2rew2new60_{ith}.npy".format(ith=iter), reward_set)
