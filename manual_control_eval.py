@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 import random
 import time
 import argparse
@@ -398,7 +398,7 @@ def updateKnowledge_eval(env, obs, ith_house):
                 continue
             # NOTE!!! indices in numpy table and the actual location coordinate indices are different
             observed_info[abs_j, abs_i] = obs['image'][vis_i, vis_j]
-            print(abs_j, abs_i)
+            #print(abs_j, abs_i)
             # if the observed info is zero, it means we can't see it through the wall, so don't update,
             # and if we already know the information, then we also don't have to update.
             if observed_info[abs_j, abs_i] != 0 and observed_info[abs_j, abs_i] != houseLocToObject[
@@ -505,25 +505,25 @@ for iter in range(eval_num):
     for ith_visit in range(args.num_visitsPerHouse):
         # loop through all the houses:
         for ith_house in range(args.num_envs):
+            print("visiting house No.", ith_house)
             window = Window(
                 'gym_minigrid - ' + args.env + ' house ' + str(ith_house) + ' ' + str(ith_visit) + ' visits')
-
             env = env_set[ith_house]
             if args.agent_view:
                 env = RGBImgPartialObsWrapper(env)
                 env = ImgObsWrapper(env)
             # we reset the house environment, which doesn't change the room layout, some minor issues with object
             if ith_house in eval_env_index:
-                #print('evaluating:', end = ' ', flush=True)
+                print('evaluating:', end = ' ', flush=True)
                 for house in range(len(eval_env_set)):
-                    #print('house:', eval_env_index[house], end = ' ', flush=True)
+                    print('house:', eval_env_index[house], end = ' ', flush=True)
                     env = eval_env_set[house]
                     temp_goal = env.goal_type
                     #houseRoomToType[ith_house, :] = [-1, -1, -1, -1]
                     #houseLocToObject[ith_house, :, :] = houseLocToObject[ith_house, :, :] * 0
 
                     for episode in range(10):
-                        #print('ep:', episode, end = ' ', flush=True)
+                        print('ep:', episode, end = ' ', flush=True)
                         houseRoomToType[ith_house, :] = [-1, -1, -1, -1]
                         houseLocToObject[ith_house, :, :] = houseLocToObject[ith_house, :, :] * 0
 
@@ -565,8 +565,8 @@ for iter in range(eval_num):
                     env.goal_type = temp_goal
                 houseRoomToType[ith_house, :] = [-1, -1, -1, -1]
                 houseLocToObject[ith_house, :, :] = houseLocToObject[ith_house, :, :] * 0
-                #print(' ')
-            #print('learning.. house: ', ith_house, end = ' ', flush=True)
+                print(' ')
+            print('learning.. house: ', ith_house, end = ' ', flush=True)
             for episode in range(60):
 
                 e_reward = 0
@@ -599,9 +599,9 @@ for iter in range(eval_num):
                     if foundNewKnowledge:
                         Q_max = sampleMDPs(ith_house, goal_type, env.agent_pos, env.agent_dir)
                         #max_merged_qtable = np.max(merged_qtable, 4)
-                #print('ep:', episode, 'reward:', e_reward, end = ' ', flush=True)
+                print('ep:', episode, 'reward:', e_reward, end = ' ', flush=True)
                 reward_set[ith_house, episode] += e_reward
-            #print("average reward=", sum(reward_set[ith_house, :]) / 60)
+            print("average reward=", sum(reward_set[ith_house, :]) / 60)
 
     reward_set = reward_set
     np.save("2rew2new60_{ith}.npy".format(ith=iter), reward_set)
