@@ -18,11 +18,11 @@ class FourRoomsEnv(MiniGridEnv):
         self.fixed_room_dist = fixed_room_dist
         goal_typeset = ['ball','box1', 'box2']
 
-        print(test)
+  
 
         self.room_set = []
         super().__init__(grid_size=13, max_steps=1000,agent_view_size=3, goal_type=goal_typeset)
-        #print(1)
+
         self.observation_space = spaces.Box(
             low=0,
             high=5,
@@ -48,7 +48,6 @@ class FourRoomsEnv(MiniGridEnv):
 
         # Return first observation
         obs = self.gen_obs()
-        #print("obs:",obs)
         return obs
     # recreate our imagining house
     def recreate(self, objects_in_rooms, rooms, goal_type):
@@ -229,7 +228,7 @@ class FourRoomsEnv(MiniGridEnv):
 
     def step(self, action):
         obs, reward, done, info = MiniGridEnv.step(self, action)
-        print("obs:",obs)
+        #print("obs:",obs)
         #obs['image'] = np.array(obs['image']).flatten()
         obs['pos'] = np.array(obs['pos']).flatten()
         if obs['pos'][0] < 6 and obs['pos'][1] < 6:
@@ -244,7 +243,6 @@ class FourRoomsEnv(MiniGridEnv):
         else:
             obs['roomtype'] = self.room_set[3]
             obs['room'] = 3
-        #print('o:',obs)
         return obs, reward, done, info
 
 register(
