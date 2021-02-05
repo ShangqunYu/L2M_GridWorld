@@ -6,8 +6,8 @@ import numpy as np
 import gym
 import gym_minigrid
 from gym_minigrid.wrappers import *
-from gym_minigrid.window import Window
-
+#from gym_minigrid.window import Window
+import copy
 
 def redraw(img):
     #if not args.agent_view:
@@ -178,13 +178,13 @@ parser.add_argument(
     '--env_width',
     type=int,
     help="width of the environment",
-    default=13
+    default=15
 )
 parser.add_argument(
     '--env_height',
     type=int,
     help="height of the environment",
-    default=13
+    default=15
 )
 
 args = parser.parse_args()
@@ -197,9 +197,9 @@ gamma = 0.95
 # currently, items can only be at the following locations.
 # location (x, y) means at x row, y column.
 #                 room0   room1     room2   room3
-ball_locations = [(5, 5), (5, 11), (11, 5), (11, 11)]
-box_locations = [(5, 1), (5, 7), (11, 1), (11, 7)]
-box2_locations = [(2, 5), (2, 11), (8, 5), (8, 11)]
+ball_locations = [(6, 6), (6, 13), (13, 6), (13, 13)]
+box_locations = [(6, 1), (6, 8), (13, 1), (13, 8)]
+box2_locations = [(2, 6), (2, 13), (9, 6), (9, 13)]
 # all locations that may contain target object
 object_locations = [ball_locations, box_locations, box2_locations]
 
@@ -404,8 +404,18 @@ def updateKnowledge_eval(env, obs, ith_house):
             if observed_info[abs_j, abs_i] != 0 and observed_info[abs_j, abs_i] != houseLocToObject[
                 ith_house, abs_j, abs_i]:
                 houseLocToObject[ith_house, abs_j, abs_i] = observed_info[abs_j, abs_i]
-                #FIXME
-                foundNewKnowledge = True
+
+                # if the location is where the itmes can show up, we need to update the tables based on whether
+                # we have seen objects or not. it also means we have acquired new knowledge.
+                if (abs_j, abs_i) in ball_locations:
+                    foundNewKnowledge = True
+
+                if (abs_j, abs_i) in box_locations:
+                    foundNewKnowledge = True
+
+                if (abs_j, abs_i) in box2_locations:
+                    foundNewKnowledge = True
+
                 # if the location is where the itmes can show up, we need to update the tables based on whether
                 # we have seen objects or not. it also means we have acquired new knowledge.
 
@@ -480,7 +490,8 @@ eval_num = 50
 # reward_set = np.zeros((args.num_envs, 5))
 for iter in range(eval_num):
     #print('iter: ', iter)
-    reward_set = np.zeros((args.num_envs + 6, 60))
+    reward_set = np.zeros((args.num_envs, 2))
+    reward_set_eval = np.zeros((36,15))
     for j in range(args.num_envs):
         env = gym.make(args.env)
         env_set.append(env)
@@ -496,7 +507,7 @@ for iter in range(eval_num):
     RoomToTypeProb = np.ones((args.num_rooms, args.num_roomtypes))
 
     # table 3, zero means we don't know yet
-    houseLocToObject = np.zeros((args.num_envs, 13, 13), dtype=np.int8)
+    houseLocToObject = np.zeros((args.num_envs, 15, 15), dtype=np.int8)
 
     # Map from room types to objects. (times it doesn't show up vs how many times it shows up )
     roomtypeToObject = np.ones((args.num_roomtypes, args.num_objects, 2))
@@ -505,27 +516,29 @@ for iter in range(eval_num):
     for ith_visit in range(args.num_visitsPerHouse):
         # loop through all the houses:
         for ith_house in range(args.num_envs):
-            print("visiting house No.", ith_house)
-            window = Window(
-                'gym_minigrid - ' + args.env + ' house ' + str(ith_house) + ' ' + str(ith_visit) + ' visits')
+            #print("visiting house No.", ith_house)
+            #window = Window(
+            #    'gym_minigrid - ' + args.env + ' house ' + str(ith_house) + ' ' + str(ith_visit) + ' visits')
             env = env_set[ith_house]
             if args.agent_view:
                 env = RGBImgPartialObsWrapper(env)
                 env = ImgObsWrapper(env)
             # we reset the house environment, which doesn't change the room layout, some minor issues with object
             if ith_house in eval_env_index:
-                print('evaluating:', end = ' ', flush=True)
+                #print('evaluating:', end = ' ', flush=True)
                 for house in range(len(eval_env_set)):
-                    print('house:', eval_env_index[house], end = ' ', flush=True)
+                    #print('house:', eval_env_index[house], end = ' ', flush=True)
                     env = eval_env_set[house]
-                    temp_goal = env.goal_type
+                    temp_goal = copy.deepcopy(env.goal_type)
+                    temphouseRoomToType = copy.deepcopy(houseRoomToType[eval_env_index[house], :])
+                    temphouseLocToObject = copy.deepcopy(houseLocToObject[eval_env_index[house], :, :])
                     #houseRoomToType[ith_house, :] = [-1, -1, -1, -1]
                     #houseLocToObject[ith_house, :, :] = houseLocToObject[ith_house, :, :] * 0
 
-                    for episode in range(10):
-                        print('ep:', episode, end = ' ', flush=True)
-                        houseRoomToType[ith_house, :] = [-1, -1, -1, -1]
-                        houseLocToObject[ith_house, :, :] = houseLocToObject[ith_house, :, :] * 0
+                    for episode in range(15):
+                        #print('ep:', episode, end = ' ', flush=True)
+                        houseRoomToType[eval_env_index[house], :] = temphouseRoomToType
+                        houseLocToObject[eval_env_index[house], :, :] = temphouseLocToObject
 
                         index = np.random.choice(len(env.goal_set))
                         env.goal_type = env.goal_set[index]
@@ -538,15 +551,15 @@ for iter in range(eval_num):
                         state = [env.agent_pos[0], env.agent_pos[1], env.agent_dir]
 
                         # after we get into a house, first of all we will sample K mdps based on past experience.
-                        Q_max = sampleMDPs(ith_house, goal_type, env.agent_pos, env.agent_dir)
+                        Q_max = sampleMDPs(eval_env_index[house], goal_type, env.agent_pos, env.agent_dir)
                         # in merged_qtable, each action has k values(cause we got k mdps), now we only need the max for each action.
 
-                        for i in range(20):
+                        for i in range(21):
 
                             # we select an action that has the highest value from the smapled MDPs
                             a = np.argmax(Q_max[state[0], state[1], state[2], :])
                             # then we take a step, after taking a step, we will know if we have found some new knowledge.
-                            obs, reward, done, info, foundNewKnowledge = step(a, ith_house, eval=True)
+                            obs, reward, done, info, foundNewKnowledge = step(a, eval_env_index[house], eval=True)
 
                             state = [env.agent_pos[0], env.agent_pos[1], env.agent_dir]
 
@@ -557,17 +570,17 @@ for iter in range(eval_num):
                             # Our starting position for the agent in those mdps should be the agent's current location.
                             if foundNewKnowledge:
                                 #print('found new knowledge')
-                                Q_max = sampleMDPs(ith_house, goal_type, env.agent_pos, env.agent_dir)
+                                Q_max = sampleMDPs(eval_env_index[house], goal_type, env.agent_pos, env.agent_dir)
                                 #max_merged_qtable = np.max(merged_qtable, 4)
-                        reward_set[ith_house // 60 + args.num_envs, house * 10 + episode] += e_reward
+                        reward_set_eval[(ith_house//60)*6 + house, episode] += e_reward
 
 
                     env.goal_type = temp_goal
-                houseRoomToType[ith_house, :] = [-1, -1, -1, -1]
-                houseLocToObject[ith_house, :, :] = houseLocToObject[ith_house, :, :] * 0
-                print(' ')
-            print('learning.. house: ', ith_house, end = ' ', flush=True)
-            for episode in range(60):
+                    houseRoomToType[eval_env_index[house], :] = temphouseRoomToType
+                    houseLocToObject[eval_env_index[house], :, :] = temphouseLocToObject
+                #print(' ')
+            #print('learning.. house: ', ith_house, end = ' ', flush=True)
+            for episode in range(2):
 
                 e_reward = 0
                 obs = env.reset2()
@@ -581,7 +594,7 @@ for iter in range(eval_num):
                 # in merged_qtable, each action has k values(cause we got k mdps), now we only need the max for each action.
                 #max_merged_qtable = np.max(merged_qtable, 4)
 
-                for i in range(19):
+                for i in range(21):
 
                     # print('check under current state, value: ', max_merged_qtable[state[0], state[1], state[2], :])
                     # we select an action that has the highest value from the smapled MDPs
@@ -599,9 +612,13 @@ for iter in range(eval_num):
                     if foundNewKnowledge:
                         Q_max = sampleMDPs(ith_house, goal_type, env.agent_pos, env.agent_dir)
                         #max_merged_qtable = np.max(merged_qtable, 4)
-                print('ep:', episode, 'reward:', e_reward, end = ' ', flush=True)
+                #print('ep:', episode, 'reward:', e_reward, end = ' ', flush=True)
                 reward_set[ith_house, episode] += e_reward
-            print("average reward=", sum(reward_set[ith_house, :]) / 60)
+            #print("average reward=", sum(reward_set[ith_house, :]) / 60)
 
     reward_set = reward_set
-    np.save("2rew2new60_{ith}.npy".format(ith=iter), reward_set)
+    reward_set_eval = reward_set_eval
+
+
+    np.save("./results/0rew15new2_{ith}.npy".format(ith=iter), reward_set)
+    np.save("./results/0rew15eval2_{ith}.npy".format(ith=iter), reward_set_eval)
