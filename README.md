@@ -5,7 +5,7 @@ https://github.com/maximecb/gym-minigrid
 
 First run:
 Run this command:
-python ./manual_control.py --env MiniGrid-FourRooms-v0 --num_envs 5
+python ./manual_control.py --env MiniGrid-FourRooms-v0 --num_envs 300
 
 ----------------------------
 
