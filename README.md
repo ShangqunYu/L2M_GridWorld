@@ -7,6 +7,9 @@ First run:
 Run this command:
 python ./manual_control.py --env MiniGrid-FourRooms-v0 --num_envs 300
 
+Color domain:
+python ./manual_control_color.py --env MiniGrid-Empty-10x10-v0 --num_envs 300
+
 ----------------------------
 
 # Minimalistic Gridworld Environment (MiniGrid)
