@@ -48,6 +48,11 @@ OBJECT_TO_IDX = {
     'lava'          : 9,
     'agent'         : 10,
     'key'           : 11,
+    'goal1'          : 12,
+    'goal2'          : 13,
+    'goal3'          : 14,
+    'goal4'          : 15,
+    'goal5'          : 16,
 }
 
 IDX_TO_OBJECT = dict(zip(OBJECT_TO_IDX.values(), OBJECT_TO_IDX.keys()))
@@ -157,6 +162,56 @@ class WorldObj:
 class Goal(WorldObj):
     def __init__(self):
         super().__init__('goal', 'green')
+
+    def can_overlap(self):
+        return True
+
+    def render(self, img):
+        fill_coords(img, point_in_rect(0, 1, 0, 1), COLORS[self.color])
+
+class Goal1(WorldObj):
+    def __init__(self):
+        super().__init__('goal1', 'green')
+
+    def can_overlap(self):
+        return True
+
+    def render(self, img):
+        fill_coords(img, point_in_rect(0, 1, 0, 1), COLORS[self.color])
+
+class Goal2(WorldObj):
+    def __init__(self):
+        super().__init__('goal2', 'blue')
+
+    def can_overlap(self):
+        return True
+
+    def render(self, img):
+        fill_coords(img, point_in_rect(0, 1, 0, 1), COLORS[self.color])
+
+class Goal3(WorldObj):
+    def __init__(self):
+        super().__init__('goal3', 'red')
+
+    def can_overlap(self):
+        return True
+
+    def render(self, img):
+        fill_coords(img, point_in_rect(0, 1, 0, 1), COLORS[self.color])
+
+class Goal4(WorldObj):
+    def __init__(self):
+        super().__init__('goal4', 'purple')
+
+    def can_overlap(self):
+        return True
+
+    def render(self, img):
+        fill_coords(img, point_in_rect(0, 1, 0, 1), COLORS[self.color])
+
+class Goal5(WorldObj):
+    def __init__(self):
+        super().__init__('goal5', 'yellow')
 
     def can_overlap(self):
         return True
@@ -688,7 +743,7 @@ class MiniGridEnv(gym.Env):
         max_steps=100,
         see_through_walls=False,
         seed=888,
-        agent_view_size=7,
+        agent_view_size=3,
         goal_type='ball',
     ):
         # Can't set both grid_size and width/height
@@ -748,11 +803,11 @@ class MiniGridEnv(gym.Env):
         # To keep the same grid for each episode, call env.seed() with
         # the same seed before calling env.reset()
         self._gen_grid(self.width, self.height)
-        while len(self.goal_set) == 0:
-            self._gen_grid(self.width, self.height)
+        # while len(self.goal_set) == 0:
+        #     self._gen_grid(self.width, self.height)
 
-        index = np.random.choice(len(self.goal_set))
-        self.goal_type = self.goal_set[index]
+        # index = np.random.choice(len(self.goal_set))
+        # self.goal_type = self.goal_set[index]
         # These fields should be defined by _gen_grid
         assert self.agent_pos is not None
         assert self.agent_dir is not None
@@ -1264,7 +1319,7 @@ class MiniGridEnv(gym.Env):
 
         image = grid.encode(vis_mask)
         #print('image:', image)
-        assert hasattr(self, 'mission'), "environments must define a textual mission string"
+
 
         # Observations are dictionaries containing:
         # - an image (partially observable view of the environment)
