@@ -173,13 +173,13 @@ parser.add_argument(
     '--env_width',
     type=int,
     help="width of the environment",
-    default=12
+    default=10
 )
 parser.add_argument(
     '--env_height',
     type=int,
     help="height of the environment",
-    default=12
+    default=10
 )
 
 args = parser.parse_args()
@@ -219,11 +219,15 @@ def value_iteration(num_iterations, colorrewards, env, id):
     for i in range(num_iterations):
         V_old = V.copy()
         Q_old = Q.copy()
+        # t1 = time.time()
         bellman_update(V, Q, env, colorrewards, id)
+        # t2 = time.time()
+        # print("t2:", t2-t1)
         oldstate = np.concatenate([V_old.reshape((-1)), Q_old.reshape((-1))])
         newstate = np.concatenate([V.reshape((-1)), Q.reshape((-1))])
         diff = newstate - oldstate
         diffnorm = np.linalg.norm(diff, ord=2)
+        # print("diffnorm:", diffnorm)
         # if the update is very small, we assume it converged.
         # also if there is no target object in the house, it will end in the first iteration as well.
         if diffnorm < 0.01:
@@ -237,6 +241,7 @@ def bellman_update(V, Q, env, colorrewards, id):
 
                     # four different orientations
             for k in range(4):
+                t3 = time.time()
                 for m in range(args.K):
 
                     # we only update states whose location is not occupied by walls or objects.
@@ -250,12 +255,18 @@ def bellman_update(V, Q, env, colorrewards, id):
                             continue
                         else:
                             for ai in range(3):
+
                                 s_prime = transition(env, s, ai)
+
                                 # print('s: ',s, 'action: ', ai, 's_prime:', s_prime)
                                 Q[i, j, k, ai, m] = rewardFunc(env, s, ai, s_prime, colorrewards, id) + gamma * V[s_prime]
+
+
+
                             # print(Q[s])
                             V[s] = Q[s].max()
-
+                t4 = time.time()
+                #print("t4:", t4 - t3)
 
 # the goal state is when the agent is in front of the target object.
 def is_goalState(env, s):
@@ -275,9 +286,10 @@ def rewardFunc(env, s, ai, s_prime, color_reward, id):
     if reward_map[id, s_prime[0], s_prime[1]] != -1:
         reward = reward_map[id, s_prime[0], s_prime[1]]
     else:
+        t6 = time.time()
         for cell in [grid1, grid2, grid3, grid4]:
             if cell.type == 'wall':
-                reward -= 8
+                reward -= 10
             elif cell.type == 'goal1':
                 reward -= np.random.normal([model_mu[0]], [model_sigma[0]]).clip(0,10)[0]
             elif cell.type == 'goal2':
@@ -288,7 +300,14 @@ def rewardFunc(env, s, ai, s_prime, color_reward, id):
                 reward -= np.random.normal([model_mu[3]], [model_sigma[3]]).clip(0,10)[0]
             elif cell.type == 'goal5':
                 reward -= np.random.normal([model_mu[4]], [model_sigma[4]]).clip(0,10)[0]
-
+            elif cell.type == 'goal6':
+                reward -= np.random.normal([model_mu[4]], [model_sigma[5]]).clip(0,10)[0]
+            elif cell.type == 'goal7':
+                reward -= np.random.normal([model_mu[4]], [model_sigma[6]]).clip(0,10)[0]
+            elif cell.type == 'goal8':
+                reward -= np.random.normal([model_mu[4]], [model_sigma[7]]).clip(0,10)[0]
+        t7 =time.time()
+        #print("t7:", t7-t6)
 
 
     return reward
@@ -374,32 +393,33 @@ def sampleMDPs(ith_house, env):
 
     return Q_max
 
-def UpdateModels(Red_rew, Yellow_rew, Blue_rew, Green_rew, Purple_rew):
-    rew = [Red_rew, Yellow_rew, Blue_rew, Green_rew, Purple_rew]
-    for i in range(5):
+def UpdateModels(Red_rew, Yellow_rew, Blue_rew, Green_rew, Purple_rew, grey_rew, white_rew, black_rew):
+    rew = [Red_rew, Yellow_rew, Blue_rew, Green_rew, Purple_rew, grey_rew, white_rew, black_rew]
+    for i in range(8):
         rew_n = rew[i]
         N = len(rew_n)
-        mu = model_mu[i]
-        mu_var = model_mu_var[i]
-        sigma = model_sigma[i]
+        if N!=0:
+            mu = model_mu[i]
+            mu_var = model_mu_var[i]
+            sigma = model_sigma[i]
 
-        mean = np.mean(rew_n)
-        mu_temp = N*mu_var/(N*mu_var+sigma)*mean + sigma/(N*mu_var+sigma)*mu
-        var_temp = mu_var*sigma/(N*mu_var+sigma)
-        model_mu[i] = mu_temp
-        model_mu_var[i] = var_temp
+            mean = np.mean(rew_n)
+            mu_temp = N*mu_var/(N*mu_var+sigma)*mean + sigma/(N*mu_var+sigma)*mu
+            var_temp = mu_var*sigma/(N*mu_var+sigma)
+            model_mu[i] = mu_temp
+            model_mu_var[i] = var_temp
 
 
 #########################################main loop####################################
 # each house we visit several times:
 eval_num = 50
 
-model_mu = [1, 1, 1, 1, 1]
-model_mu_var = [1, 1, 1, 1, 1]
-model_sigma = [1, 1, 1, 1, 1]
+
 
 for iter in range(eval_num):
-
+    model_mu = [1, 1, 1, 1, 1, 1, 1, 1]
+    model_mu_var = [1, 1, 1, 1, 1, 1, 1, 1]
+    model_sigma = [1.5, 1.5, 1.5, 1.5, 1.5, 1.5 ,1.5, 1.5]
     reward_set = np.zeros((args.num_envs, 2))
     reward_set_eval = np.zeros((5, args.num_envs//2))
     reward_map = np.ones((args.num_envs, args.env_width, args.env_height))*-1
@@ -417,6 +437,9 @@ for iter in range(eval_num):
     Blue_rew = []
     Green_rew = []
     Purple_rew = []
+    Grey_rew = []
+    White_rew = []
+    Black_rew = []
     global_step = 0
     for ith_visit in range(args.num_visitsPerHouse):
         # loop through all the houses:
@@ -454,34 +477,48 @@ for iter in range(eval_num):
 
                     e_reward += reward
                     if reward_map[ith_house, env.agent_pos[0], env.agent_pos[1]] == -1:
+
                         know_n +=1
                         Green_rew.extend(obs['goal1'])
                         Blue_rew.extend(obs['goal2'])
                         Red_rew.extend(obs['goal3'])
                         Purple_rew.extend(obs['goal4'])
                         Yellow_rew.extend(obs['goal5'])
+                        Grey_rew.extend(obs['goal6'])
+                        White_rew.extend(obs['goal7'])
+                        Black_rew.extend(obs['goal8'])
+
+
                     reward_map[ith_house, env.agent_pos[0], env.agent_pos[1]] = reward
-                    if len(Red_rew)>=20:
-                        UpdateModels(Red_rew, Yellow_rew, Blue_rew, Green_rew, Purple_rew)
+                    if len(Red_rew)>=10:
+
+                        UpdateModels(Red_rew, Yellow_rew, Blue_rew, Green_rew, Purple_rew, Grey_rew, White_rew, Black_rew)
                         Red_rew = []
                         Yellow_rew = []
                         Blue_rew = []
                         Green_rew = []
                         Purple_rew = []
-                        Q_max = sampleMDPs(ith_house, env)
-                    if know_n%10 == 0:
-                        # Q_max = sampleMDPs(ith_house, env)
+                        Grey_rew = []
+                        White_rew = []
+                        Black_rew = []
+
 
                         Q_max = sampleMDPs(ith_house, env)
+
+
+                    if know_n == 10:
+                        # Q_max = sampleMDPs(ith_house, env)
+                        Q_max = sampleMDPs(ith_house, env)
+                        know_n = 0
                     if done:
                         break
                         # Q_max = sampleMDPs(ith_house, goal_type, env.agent_pos, env.agent_dir)
                         #max_merged_qtable = np.max(merged_qtable, 4)
                 #print('ep:', episode, 'reward:', e_reward, end = ' ', flush=True)
-                reward_set[ith_house, episode] += e_reward
+                reward_set[ith_house, episode] = e_reward
             #print("average reward=", sum(reward_set[ith_house, :]) / 60)
 
     reward_set = reward_set
     reward_set_eval = reward_set_eval
-    np.save("./results/3rew2new2_{ith}.npy".format(ith=iter), reward_set)
+    np.save("./3rew2new2_{ith}.npy".format(ith=iter), reward_set)
     # np.save("./results/3rew2eval2_{ith}.npy".format(ith=iter), reward_set_eval)
