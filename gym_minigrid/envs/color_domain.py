@@ -8,7 +8,7 @@ class EmptyEnv(MiniGridEnv):
 
     def __init__(
         self,
-        size=12,
+        size=10,
         agent_start_pos=(1,1),
         agent_start_dir=0,
     ):
@@ -21,7 +21,7 @@ class EmptyEnv(MiniGridEnv):
             # Set this to True for maximum speed
             see_through_walls=True
         )
-        self.color_reward = np.random.normal([0, 2, 5, 8, 7], [1, 1, 1, 1, 1]).clip(0,10)
+        self.color_reward = np.random.normal([0, 2, 5, 7, 8, 11, 13, 14], [1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5]).clip(0,15)
     def reset2(self, agent_pos=(1, 1), agent_dir=0):
         # Current position and direction of the agent
         self.agent_pos = agent_pos
@@ -55,23 +55,33 @@ class EmptyEnv(MiniGridEnv):
                     self.put_obj(Ball(), i + 1, j + 1)
                     continue
 
-                index = np.random.choice(5)
+                index = np.random.choice(8)
 
                 if index == 0:
                     self.put_obj(Goal1(), i + 1, j + 1)
-                    self.rew_map[i, j] = np.random.normal([0], [1.]).clip(0,10)[0]
+                    self.rew_map[i, j] = np.random.normal([0], [1.]).clip(0,15)[0]
                 elif index == 1:
                     self.put_obj(Goal2(), i + 1, j + 1)
-                    self.rew_map[i, j] = np.random.normal([2], [1.]).clip(0, 10)[0]
+                    self.rew_map[i, j] = np.random.normal([2], [1.]).clip(0, 15)[0]
                 elif index == 2:
                     self.put_obj(Goal3(), i + 1, j + 1)
-                    self.rew_map[i, j] = np.random.normal([5], [1.]).clip(0, 10)[0]
+                    self.rew_map[i, j] = np.random.normal([5], [1.]).clip(0, 15)[0]
                 elif index == 3:
                     self.put_obj(Goal4(), i + 1, j + 1)
-                    self.rew_map[i, j] = np.random.normal([8], [1.]).clip(0, 10)[0]
-                else:
+                    self.rew_map[i, j] = np.random.normal([7], [1.]).clip(0, 15)[0]
+                elif index == 4:
                     self.put_obj(Goal5(), i + 1, j + 1)
-                    self.rew_map[i, j] = np.random.normal([7], [1.]).clip(0, 10)[0]
+                    self.rew_map[i, j] = np.random.normal([8], [1.]).clip(0, 15)[0]
+                elif index == 5:
+                    self.put_obj(Goal6(), i + 1, j + 1)
+                    self.rew_map[i, j] = np.random.normal([11], [1.]).clip(0, 15)[0]
+                elif index == 6:
+                    self.put_obj(Goal7(), i + 1, j + 1)
+                    self.rew_map[i, j] = np.random.normal([13], [1.]).clip(0, 15)[0]
+                else:
+                    self.put_obj(Goal8(), i + 1, j + 1)
+                    self.rew_map[i, j] = np.random.normal([14], [1.]).clip(0, 15)[0]
+
 
         # Place the agent
         if self.agent_start_pos is not None:
@@ -161,10 +171,10 @@ class EmptyEnv(MiniGridEnv):
             color_reward = self.color_reward
         reward = 0
         done = False
-        obs = {'goal1':[],'goal2':[],'goal3':[],'goal4':[],'goal5':[]}
+        obs = {'goal1':[],'goal2':[],'goal3':[],'goal4':[],'goal5':[], 'goal6':[], 'goal7':[], 'goal8':[]}
         cell = self.grid.get(self.agent_pos[0]-1, self.agent_pos[1])
         if cell.type == 'wall':
-            reward += -8
+            reward += -10
         elif cell.type == 'ball':
             done = True
         else:
@@ -172,7 +182,7 @@ class EmptyEnv(MiniGridEnv):
             obs[cell.type].append(self.rew_map[self.agent_pos[0]-2, self.agent_pos[1]-1])
         cell = self.grid.get(self.agent_pos[0]+1, self.agent_pos[1])
         if cell.type == 'wall':
-            reward += -8
+            reward += -10
         elif cell.type == 'ball':
             done = True
         else:
@@ -180,7 +190,7 @@ class EmptyEnv(MiniGridEnv):
             obs[cell.type].append(self.rew_map[self.agent_pos[0], self.agent_pos[1]-1])
         cell = self.grid.get(self.agent_pos[0], self.agent_pos[1]-1)
         if cell.type == 'wall':
-            reward += -8
+            reward += -10
         elif cell.type == 'ball':
             done = True
         else:
@@ -188,7 +198,7 @@ class EmptyEnv(MiniGridEnv):
             obs[cell.type].append(self.rew_map[self.agent_pos[0]-1, self.agent_pos[1]-2])
         cell = self.grid.get(self.agent_pos[0], self.agent_pos[1]+1)
         if cell.type == 'wall':
-            reward += -8
+            reward += -10
         elif cell.type == 'ball':
             done = True
         else:
@@ -230,8 +240,10 @@ class EmptyEnv16x16(EmptyEnv):
         super().__init__(size=16, **kwargs)
 
 
+
 register(
     id='MiniGrid-Empty-10x10-v0',
     entry_point='gym_minigrid.envs:EmptyEnv'
 )
+
 
