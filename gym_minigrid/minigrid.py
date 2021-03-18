@@ -17,7 +17,9 @@ COLORS = {
     'blue'  : np.array([0, 0, 255]),
     'purple': np.array([112, 39, 195]),
     'yellow': np.array([255, 255, 0]),
-    'grey'  : np.array([100, 100, 100])
+    'grey'  : np.array([100, 100, 100]),
+    'white' : np.array([255, 255, 255]),
+    'black' : np.array([0, 0, 0])
 }
 
 #COLOR_NAMES = sorted(list(COLORS.keys()))
@@ -29,7 +31,9 @@ COLOR_TO_IDX = {
     'blue'  : 2,
     'purple': 3,
     'yellow': 4,
-    'grey'  : 5
+    'grey'  : 5,
+    'white' : 6,
+    'black' : 7
 }
 
 IDX_TO_COLOR = dict(zip(COLOR_TO_IDX.values(), COLOR_TO_IDX.keys()))
@@ -53,6 +57,9 @@ OBJECT_TO_IDX = {
     'goal3'          : 14,
     'goal4'          : 15,
     'goal5'          : 16,
+    'goal6'          : 17,
+    'goal7'          : 18,
+    'goal8'          : 19
 }
 
 IDX_TO_OBJECT = dict(zip(OBJECT_TO_IDX.values(), OBJECT_TO_IDX.keys()))
@@ -212,6 +219,36 @@ class Goal4(WorldObj):
 class Goal5(WorldObj):
     def __init__(self):
         super().__init__('goal5', 'yellow')
+
+    def can_overlap(self):
+        return True
+
+    def render(self, img):
+        fill_coords(img, point_in_rect(0, 1, 0, 1), COLORS[self.color])
+
+class Goal6(WorldObj):
+    def __init__(self):
+        super().__init__('goal6', 'grey')
+
+    def can_overlap(self):
+        return True
+
+    def render(self, img):
+        fill_coords(img, point_in_rect(0, 1, 0, 1), COLORS[self.color])
+
+class Goal7(WorldObj):
+    def __init__(self):
+        super().__init__('goal7', 'white')
+
+    def can_overlap(self):
+        return True
+
+    def render(self, img):
+        fill_coords(img, point_in_rect(0, 1, 0, 1), COLORS[self.color])
+
+class Goal8(WorldObj):
+    def __init__(self):
+        super().__init__('goal8', 'black')
 
     def can_overlap(self):
         return True
