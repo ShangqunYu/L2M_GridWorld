@@ -2,7 +2,7 @@ import pygame
 import gym
 import sys
 
-#sys.path.append('/Users/fionaaga/Desktop/stable-baselines3')
+sys.path.append('/Users/justinodwyer/Desktop/L2M/L2M_GridWorld/jumping_task/stable_baselines3')
 sys.path.append('/Users/justinodwyer/Desktop/L2M/jumping-task/gym-jumping-task')
 print(sys.path)
 from stable_baselines3 import DQN, TD3, A2C, PPO
