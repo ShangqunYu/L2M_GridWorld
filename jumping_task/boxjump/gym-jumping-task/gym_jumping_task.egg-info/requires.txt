@@ -1,0 +1,4 @@
+gym
+argparse
+numpy
+pygame
