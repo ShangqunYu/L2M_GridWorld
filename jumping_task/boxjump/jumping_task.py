@@ -70,9 +70,10 @@ class JumpTaskEnv(object):
               agent_w=5, agent_h=10, agent_init_pos=0, agent_speed=1,
               obstacle_position=30, obstacle_size=(9, 10),
               rendering=False, zoom=8, slow_motion=False, with_left_action=False,
-              max_number_of_steps=600, two_obstacles=False, finish_jump=False):
+              max_number_of_steps=600, two_obstacles=False, finish_jump=False, speed=0.05,
+              life=-100, exit=100):
 
-    self.rewards = {'life': -1, 'exit': 1}
+    self.rewards = {'life': life, 'exit': exit}
     self.scr_w = scr_w
     self.scr_h = scr_h
     self.state_shape = [scr_w, scr_h]
@@ -100,6 +101,8 @@ class JumpTaskEnv(object):
     self.finish_jump = finish_jump
 
     self.reset(obstacle_position, floor_height, two_obstacles)
+
+    self.speed = speed
 
     # Define gym env objects
     try:
@@ -133,7 +136,7 @@ class JumpTaskEnv(object):
     if self.rendering:
       self.render()
       if self.slow_motion:
-        time.sleep(0.1)
+        time.sleep(self.speed)
 
     return failure, success
 
@@ -225,7 +228,7 @@ class JumpTaskEnv(object):
     Args
       action: the action to be taken by the agent
     '''
-    reward = -self.agent_pos_x
+    reward = 0
     if self.step_id > self.max_number_of_steps:
       print('You have reached the maximum number of steps.')
       self.done = True
@@ -257,7 +260,6 @@ class JumpTaskEnv(object):
         self._continue_jump()
         killed, exited = self._game_status()
 
-    reward += self.agent_pos_x
     if killed:
       reward = self.rewards['life']
     elif exited:
@@ -304,10 +306,11 @@ class JumpTaskEnv(object):
 
 def test(args):
   env = JumpTaskEnv(scr_w=args.scr_w, scr_h=args.scr_h, floor_height=args.floor_height,
-                    agent_w=args.agent_w, agent_h=args.agent_h, agent_init_pos=args.agent_init_pos, agent_speed=args.agent_speed,
-                    obstacle_position=args.obstacle_position, obstacle_size=args.obstacle_size,
-                    rendering=True, zoom=args.zoom, slow_motion=True, with_left_action=args.with_left_action,
-                    max_number_of_steps=args.max_number_of_steps, two_obstacles=args.two_obstacles, finish_jump=True)
+                    agent_w=args.agent_w, agent_h=args.agent_h, agent_init_pos=args.agent_init_pos, 
+                    agent_speed=args.agent_speed, obstacle_position=args.obstacle_position, 
+                    obstacle_size=args.obstacle_size, rendering=True, zoom=args.zoom, slow_motion=True, 
+                    with_left_action=args.with_left_action, max_number_of_steps=args.max_number_of_steps, 
+                    two_obstacles=args.two_obstacles, finish_jump=True, speed=0.05, life=-100, exit=1000)
   env.render()
   score = 0
   while not env.done:
