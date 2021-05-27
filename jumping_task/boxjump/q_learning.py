@@ -39,7 +39,7 @@ def bellman_update(alpha, reward, discount, last_state, state):
 #—————————————————————————————————————————————————————————————————————————————————————————————
 
 # initialize some stuff
-num_episodes = 20000
+num_episodes = 10000
 num_states = 60
 num_actions = 2
 Q = np.zeros((num_states, num_actions))
@@ -49,13 +49,16 @@ discount = 0.1
 SPEED = 0.05
 LIFE = -10
 EXIT = 10
+RENDER = False
 total_reward_hist = []
 success_rate = []
 
 # train the agent
 # loop over number of episodes. change rendering to True to visualize
 for episode in tqdm(range(num_episodes)):
-  env = JumpTaskEnv(obstacle_position=12, rendering=False, slow_motion=True, 
+  #if episode > num_episodes-15:
+    #RENDER = True 
+  env = JumpTaskEnv(obstacle_position=12, rendering=RENDER, slow_motion=True, 
                     finish_jump=False, speed=SPEED, life=LIFE, exit=EXIT)
   env.render()
   state = env.agent_pos_x
@@ -75,7 +78,7 @@ for episode in tqdm(range(num_episodes)):
       reward += state
     # penalize the agent for jumping
     if action == 1:
-      reward -= 2
+      reward -= 1
     bellman_update(alpha, reward, discount, last_state, state)
     total_reward += reward
     #print(state, last_state, reward, total_reward)
@@ -85,6 +88,7 @@ for episode in tqdm(range(num_episodes)):
     success_rate.append(0)
   total_reward_hist.append(total_reward)
 
+#print('Q values: ', Q)
 print()
 print('——————————————————')
 print('Training complete.')
