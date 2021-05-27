@@ -27,7 +27,7 @@ def argmax(q_values):
 
 # create an epsilon greedy function for off-policy learning
 def select_action_egreedy(q_values, epsilon):
-  if np.random.uniform() < 0.1:
+  if np.random.uniform() < epsilon:
     return np.random.choice(len(q_values))
   else:
     return argmax(q_values)
