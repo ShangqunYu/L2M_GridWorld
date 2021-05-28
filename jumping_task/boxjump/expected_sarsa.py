@@ -28,9 +28,19 @@ def select_action_egreedy(q_values, epsilon):
   else:
     return argmax(q_values)
 
+def action_probs(q_values, epsilon):
+  next_state_probs = [epsilon/len(q_values)]*len(q_values)
+  best_action = select_action_egreedy(q_values, epsilon)
+  next_state_probs[best_action] += (1.0 - epsilon)
+
+  return next_state_probs
+
 # define the bellman update for q-learning
 def bellman_update(alpha, reward, discount, last_state, state):
-  Q[last_state, action] += alpha*(reward + discount*np.max(Q[state]) - Q[last_state, action])
+  pi = action_probs(Q[state], epsilon)
+  target = reward + discount*sum(pi*Q[state])
+
+  Q[last_state, action] += alpha*(target - Q[last_state, action])
 
 #—————————————————————————————————————————————————————————————————————————————————————————————
 
@@ -93,14 +103,14 @@ print('——————————————————')
 #print(total_reward_hist)
 print()
 
-np.save("./results/q_learning_rewards.npy", total_reward_hist)
+np.save("./results/expected_sarsa_rewards.npy", total_reward_hist)
 
 print('Success rate: ', 100*sum(success_rate) / num_episodes, "%")
 print('Success rate in first 1000 episodes: ', 100*sum(success_rate[0:1000]) / 1000, "%")
 print('Success rate in last 1000 episodes: ', 100*sum(success_rate[num_episodes-999:num_episodes+1]) / 100, "%")
 
 #—————————————————————————————————————————————————————————————————————————————————————————————
-
+'''
 print()
 print('Optimal policy will play.')
 print()
@@ -131,3 +141,4 @@ while not env.done:
   total_reward += reward
   #print(state, last_state, reward, total_reward)
   #print(action, argmax(Q[last_state]), Q[last_state])
+'''
