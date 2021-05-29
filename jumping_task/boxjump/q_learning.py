@@ -23,19 +23,19 @@ agent = QLAgent(agent_info)
 #—————————————————————————————————————————————————————————————————————————————————————————————
 
 # initialize some stuff
-num_episodes = 100
+num_episodes = 60
 SPEED = 0.03
 LIFE = -10
 EXIT = 10
-RENDER = False
+RENDER = True
 total_reward_hist = []
 success_rate = []
 
 # train the agent
 # loop over number of episodes. change rendering to True above to visualize
 for episode in tqdm(range(num_episodes)):
-  if episode > num_episodes-3:
-    RENDER = True
+  #if episode > num_episodes-3:
+    #RENDER = True
   env = JumpTaskEnv(obstacle_position=12, rendering=RENDER, slow_motion=True, finish_jump=True, speed=SPEED, life=LIFE, exit=EXIT)
   env.render()
   start_location = (int(env.agent_pos_x), int(env.agent_pos_y)-10)
