@@ -1,0 +1,12 @@
+------------------  ---------------
+ELBO_task              -6.23366e+10
+loglikelihood_task     -6.23366e+10
+KL_loss_task        23908.1
+Pred_obs_loss_task      1.8391e+07
+Pred_rew_loss_task      2.14249e+06
+AverageReturn          24
+Epoch                  76
+SampleStep           5094
+------------------  ---------------
+2021-06-18 00:05:09.338260 CST | [2021_06_18_00_05_06] Iteration #5094 | Epoch Duration: 3.1734418869018555
+2021-06-18 00:05:09.338338 CST | [2021_06_18_00_05_06] Iteration #5094 | Started Training: True

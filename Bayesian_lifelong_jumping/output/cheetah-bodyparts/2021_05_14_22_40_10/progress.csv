@@ -1,0 +1,2 @@
+ELBO_task,loglikelihood_task,KL_loss_task,Pred_obs_loss_task,Pred_rew_loss_task,AverageReturn,Pred_obs_loss,Pred_rew_loss,ELBO,loglikelihood,KL_loss,Epoch
+-220767420416.0,-220767420000.0,80424.03,77125530.0,2812053.0,-25.628527643166954,15445460.0,775710.75,-3585642752.0,-3585642800.0,79574.5,50

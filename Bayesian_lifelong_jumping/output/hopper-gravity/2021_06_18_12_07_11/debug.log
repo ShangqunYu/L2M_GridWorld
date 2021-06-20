@@ -1,0 +1,84 @@
+------------------  ---------------
+ELBO_task              -6.63291e+10
+loglikelihood_task     -6.63291e+10
+KL_loss_task        23941
+Pred_obs_loss_task      3.473e+06
+Pred_rew_loss_task      1.55145e+06
+AverageReturn          24
+Epoch                  94
+SampleStep           5022
+------------------  ---------------
+2021-06-18 12:07:14.707476 CST | [2021_06_18_12_07_11] Iteration #5022 | Epoch Duration: 3.134002923965454
+2021-06-18 12:07:14.707556 CST | [2021_06_18_12_07_11] Iteration #5022 | Started Training: True
+------------------  ---------------
+ELBO_task              -1.70742e+08
+loglikelihood_task     -1.70742e+08
+KL_loss_task        22096.7
+Pred_obs_loss_task      1.15607e+06
+Pred_rew_loss_task  72164.7
+AverageReturn           0
+Epoch                  95
+SampleStep           5624
+------------------  ---------------
+2021-06-18 12:07:20.749428 CST | [2021_06_18_12_07_11] Iteration #5624 | Epoch Duration: 6.04178524017334
+2021-06-18 12:07:20.749505 CST | [2021_06_18_12_07_11] Iteration #5624 | Started Training: True
+------------------  ---------------
+ELBO_task              -1.24776e+08
+loglikelihood_task     -1.24776e+08
+KL_loss_task        21029.2
+Pred_obs_loss_task      1.00309e+06
+Pred_rew_loss_task  92626.4
+AverageReturn           0
+Epoch                  96
+SampleStep           6226
+------------------  ---------------
+2021-06-18 12:07:26.775805 CST | [2021_06_18_12_07_11] Iteration #6226 | Epoch Duration: 6.026223659515381
+2021-06-18 12:07:26.775883 CST | [2021_06_18_12_07_11] Iteration #6226 | Started Training: True
+------------------  ---------------
+ELBO_task              -9.02861e+07
+loglikelihood_task     -9.02861e+07
+KL_loss_task        20368.3
+Pred_obs_loss_task      1.00658e+06
+Pred_rew_loss_task  66223.9
+AverageReturn           0
+Epoch                  97
+SampleStep           6828
+------------------  ---------------
+2021-06-18 12:07:32.807073 CST | [2021_06_18_12_07_11] Iteration #6828 | Epoch Duration: 6.031097650527954
+2021-06-18 12:07:32.807151 CST | [2021_06_18_12_07_11] Iteration #6828 | Started Training: True
+------------------  ---------------
+ELBO_task               -7.4958e+07
+loglikelihood_task      -7.4958e+07
+KL_loss_task         19976.5
+Pred_obs_loss_task  980995
+Pred_rew_loss_task   73603.5
+AverageReturn            0
+Epoch                   98
+SampleStep            7430
+------------------  ---------------
+2021-06-18 12:07:38.832949 CST | [2021_06_18_12_07_11] Iteration #7430 | Epoch Duration: 6.025696039199829
+2021-06-18 12:07:38.833025 CST | [2021_06_18_12_07_11] Iteration #7430 | Started Training: True
+------------------  ----------------
+ELBO_task               -5.61669e+07
+loglikelihood_task      -5.61669e+07
+KL_loss_task         19747.5
+Pred_obs_loss_task  879584
+Pred_rew_loss_task   66996.5
+AverageReturn            0
+Epoch                   99
+SampleStep            8032
+------------------  ----------------
+2021-06-18 12:07:44.855214 CST | [2021_06_18_12_07_11] Iteration #8032 | Epoch Duration: 6.022096872329712
+2021-06-18 12:07:44.855294 CST | [2021_06_18_12_07_11] Iteration #8032 | Started Training: True
+------------------  ---------
+ELBO_task           -212190
+loglikelihood_task  -212188
+KL_loss_task          19615.5
+Pred_obs_loss_task   804598
+Pred_rew_loss_task    47339.8
+AverageReturn             0
+Epoch                   100
+SampleStep             8634
+------------------  ---------
+2021-06-18 12:07:50.882212 CST | [2021_06_18_12_07_11] Iteration #8634 | Epoch Duration: 6.026825189590454
+2021-06-18 12:07:50.882288 CST | [2021_06_18_12_07_11] Iteration #8634 | Started Training: True
