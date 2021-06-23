@@ -2,6 +2,19 @@ import numpy as np
 import time
 import torch
 import rlkit.torch.pytorch_util as ptu
+import os
+
+def save_prediction(data):
+    directory = 'logs/'
+    timestamp = time.time()
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    filename = directory+str(timestamp)+".csv"
+    #breakpoint()
+    #data = np.array(data)
+    np.savetxt(filename,data,fmt = '%s')
+    #with open(filename, "w") as text_file:
+        #text_file.write(str(data))
 
 def rollout(env, agent, env_idx, max_path_length=np.inf, planning=True,accum_context=True, resample_z=False, animated=False, save_frames=False):
     """
@@ -34,10 +47,11 @@ def rollout(env, agent, env_idx, max_path_length=np.inf, planning=True,accum_con
     r_los = []
     o_los = []
     o = env.reset()
-    #o[-9:] = o[-9:]/5
     goal_step = 0
     path_length = 0
     success_num = 0
+    #comparing prediction vs reality
+    prediction_data = []
     if animated:
         env.render()
 
@@ -46,14 +60,19 @@ def rollout(env, agent, env_idx, max_path_length=np.inf, planning=True,accum_con
 
         a = agent.get_action(o, env_idx, planning=planning)
 
-
-        # r_, s_, = agent.forw_dyna_set[env_idx].infer(torch.from_numpy(o).float().to(ptu.device)[None],torch.from_numpy(a).float().to(ptu.device)[None])
+        #estimated reward and next state given by our model
+        #note! r_ is not next state, it is the different between the current state and next state
+        r_, s_, = agent.forw_dyna_set[env_idx].infer(torch.from_numpy(o).float().to(ptu.device)[None],torch.from_numpy(a).float().to(ptu.device)[None])
         next_o, r, d, env_info = env.step(a)
-        # print("obs:", next_o)
-        # print("vel:", env.env.env.sim.data.qvel.flat)
+        #print("obs:", next_o)
+        #print("vel:", env.env.env.sim.data.qvel.flat)
         # print("pos:", env.env.env.sim.data.qpos.flat[1:])
-        # pred_no = s_.detach().cpu().numpy() + o
-        # pred_r = r_.detach().cpu().numpy()
+        pred_no = s_.detach().cpu().numpy() + o
+        pred_r = r_.detach().cpu().numpy()
+        #print("pred_obs", pred_no)
+        #store predicted obs and reward with real ones.
+        temp_data_prediction = [next_o.tolist(), pred_no.tolist(), r, pred_r.tolist()]
+        prediction_data.append(temp_data_prediction)
         #next_o[-9:] = next_o[-9:] / 5
         # o_los.append(np.sum((pred_no-next_o)**2))
         # r_los.append((pred_r - r) ** 2)
@@ -82,7 +101,7 @@ def rollout(env, agent, env_idx, max_path_length=np.inf, planning=True,accum_con
             env.render()
     # print("r_pred_loss:", np.mean(r_los))
     # print("no_pred_loss:", np.mean(o_los))
-
+    save_prediction(prediction_data)
     actions = np.array(actions)
     if len(actions.shape) == 1:
         actions = np.expand_dims(actions, 1)
@@ -96,6 +115,7 @@ def rollout(env, agent, env_idx, max_path_length=np.inf, planning=True,accum_con
             np.expand_dims(next_o, 0)
         )
     )
+
     return dict(
         observations=observations,
         actions=actions,
