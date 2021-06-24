@@ -30,7 +30,8 @@ def experiment(variant):
     envs[0] = env
 
     obs_dim = 5
-    action_dim = 1
+    #Simon:change action dim to 2 for 1 hot mode
+    action_dim = 2
     SEED = 50  # initial value, 10 will be added for every iteration
     job_name_mtl = 'results/jumping'
     torch.set_num_threads(5)

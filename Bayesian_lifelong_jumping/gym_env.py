@@ -23,7 +23,7 @@ class GymEnv(object):
                 self._action_dim = self.env.env.action_space.shape[0]
             except AttributeError:
                 self._action_dim = self.env.action_space.shape[0]
-        
+
         try:
             self._observation_dim = self.env.env.obs_dim
         except AttributeError:
@@ -34,7 +34,6 @@ class GymEnv(object):
         except AttributeError:
             self._num_agents = 1
 
-        # Specs
         self.spec = EnvSpec(self._observation_dim, self._action_dim, self._horizon, self._num_agents)
 
     @property
@@ -69,13 +68,13 @@ class GymEnv(object):
     def visualize_policy(self, policy, horizon=1000, num_episodes=1, mode='exploration'):
         self.env.env.visualize_policy(policy, horizon, num_episodes, mode)
 
-    def evaluate_policy(self, policy, 
-                        num_episodes=5, 
-                        horizon=None, 
-                        gamma=1, 
+    def evaluate_policy(self, policy,
+                        num_episodes=5,
+                        horizon=None,
+                        gamma=1,
                         visual=False,
-                        percentile=[], 
-                        get_full_dist=False, 
+                        percentile=[],
+                        get_full_dist=False,
                         mean_action=False,
                         init_state=None,
                         terminate_at_done=True,
@@ -96,7 +95,7 @@ class GymEnv(object):
             if init_state is not None:
                 o = self.reset()
                 self.env.set_state(init_state[0], init_state[1])
-                o = self.env._get_obs()    
+                o = self.env._get_obs()
             else:
                 o = self.reset()
 
@@ -111,10 +110,10 @@ class GymEnv(object):
                 o, r, done, _ = self.step(a)
                 ep_returns[ep] += (gamma ** t) * r
                 t += 1
-        
+
         if save_video_location != None:
             self.env.monitor.close()
-        
+
         mean_eval, std = np.mean(ep_returns), np.std(ep_returns)
         min_eval, max_eval = np.amin(ep_returns), np.amax(ep_returns)
         base_stats = [mean_eval, std, min_eval, max_eval]

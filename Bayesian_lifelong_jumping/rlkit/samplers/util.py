@@ -62,7 +62,9 @@ def rollout(env, agent, env_idx, max_path_length=np.inf, planning=True,accum_con
 
         #estimated reward and next state given by our model
         #note! r_ is not next state, it is the different between the current state and next state
+
         r_, s_, = agent.forw_dyna_set[env_idx].infer(torch.from_numpy(o).float().to(ptu.device)[None],torch.from_numpy(a).float().to(ptu.device)[None])
+
         next_o, r, d, env_info = env.step(a)
         #print("obs:", next_o)
         #print("vel:", env.env.env.sim.data.qvel.flat)

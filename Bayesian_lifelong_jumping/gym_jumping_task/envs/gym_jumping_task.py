@@ -128,7 +128,8 @@ class JumpTaskEnv(gym.Env):
     #self.observation_space = spaces.Box(low=0, high=255, shape=(*self.state_shape, 1), dtype = np.uint8)
     #self.action_space = spaces.Discrete(self.nb_actions)
     observation = np.array([[0,100],[0,100],[0,1],[-1,1],[0,100]])
-    action = np.array([[-1,1]])
+    #Simon: change to 1 hot, so should be 2
+    action = np.array([[0,1],[0,1]])
     self.action_space = spaces.Box(low=action[:,0], high=action[:,1], dtype=np.float32)
     self.observation_space = spaces.Box(low=observation[:,0], high=observation[:,1], dtype=np.float32)
 
@@ -286,20 +287,37 @@ class JumpTaskEnv(gym.Env):
     killed, exited = self._game_status()
     if self.step_id < self.max_number_of_steps and (killed or exited):
         self.step_id += 1
-        #if agent was dead, it shall get negative reward for the remaining steps
+        #if the agent was dead, it shall get negative reward for the remaining steps
         if killed:
             reward = -1
         #else shall get positive reward
         else:
             reward = 1
         return self.get_low_dim_state(), reward, False, {}
-    #Simon: modified the incomming action, change to discrete aciton space
+
+    # Simon: in order to fit the bayesian lifelong learning frame start_worker
+    # change to 1 hot action spaces
+    # action [1, 0] means jumping, action [0, 1] means going right
+    action = action.tolist()
+    if action[0]==1 and action[1]==0:
+        #action 1 represents jumping
+        action = 1
+    elif action[0]==0 and action[1]==1:
+        #action 0 represent going right
+        action = 0
+    else:
+        raise ValueError(
+              'We did not recognize that action. '
+              'the action we received is {}'.format(action))
+
+    '''
     if action > 0:
         #jump
         action = 1
         #going right
     else:
         action = 0
+    '''
     reward = -self.agent_pos_x
     if self.step_id >= self.max_number_of_steps:
       print('You have reached the maximum number of steps.')

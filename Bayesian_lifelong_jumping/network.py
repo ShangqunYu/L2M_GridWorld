@@ -206,7 +206,7 @@ class BNN:
         i.e., E_{theta ~ q(* | phi)} [ log p(D | theta)] ~ log p(D | theta_1)
         """
         output_mean1, output_logvar1, output_mean2, output_logvar2 = self.infer(input_batch, share_paremeters_among_samples=True)
-        
+
         # log p(s_next)
         # = log N(output_batch | output_mean, exp(output_logvar))
         # = -\frac{1}{2} \sum^d_j [ logvar_j + (s_next_j - output_mean)^2 exp(- logvar_j) ]  - \frac{d}{2} \log (2\pi)

@@ -64,8 +64,16 @@ class CEMOptimizer(Optimizer):
             init_mean (np.ndarray): The mean of the initial candidate distribution.
             init_var (np.ndarray): The variance of the initial candidate distribution.
         """
+        samples= np.eye(2)[np.random.choice(2, self.popsize*int(self.sol_dim/2))].reshape(self.popsize,self.sol_dim)
+        costs = self.cost_function(samples)
+        #we only need the best one
+        elite = samples[np.argsort(-costs)][0]
+        return elite
+
+'''
         mean, var, t = init_mean, init_var, 0
         X = stats.truncnorm(-2, 2, loc=np.zeros_like(mean), scale=np.ones_like(var))
+
 
         while (t < self.max_iters) and np.max(var) > self.epsilon:
 
@@ -90,3 +98,4 @@ class CEMOptimizer(Optimizer):
             t += 1
 
         return mean
+'''

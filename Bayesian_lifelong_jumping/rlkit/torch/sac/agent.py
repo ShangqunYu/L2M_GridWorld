@@ -88,7 +88,9 @@ class Agent(nn.Module):#context encoder -> action output (during training and sa
 
         self.current_id = env_idx
         if not planning:
-            return np.random.uniform(-1, 1, self.dU)
+            #simon change to 1 hot action chocie
+            return np.eye(2)[np.random.choice(2,1)].squeeze()
+            #return np.random.uniform(-1, 1, self.dU)
 
         if self.ac_buf.shape[0] > 0:
 
@@ -98,6 +100,7 @@ class Agent(nn.Module):#context encoder -> action output (during training and sa
 
         self.sy_cur_obs = obs
         #t1 =time.time()
+        #breakpoint()
         soln = self.optimizer.obtain_solution(self.prev_sol, self.init_var)
         #t2 = time.time()
         #print("act:", t2-t1)
