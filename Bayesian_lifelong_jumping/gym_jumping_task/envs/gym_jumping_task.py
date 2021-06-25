@@ -48,7 +48,7 @@ OBSTACLE_2 = 55
 #ALLOWED_OBSTACLE_Y = [10, 20]
 ALLOWED_OBSTACLE_Y = [10]
 # Max and min positions
-LEFT = 17
+LEFT = 15
 RIGHT = 48
 DOWN = 0
 UP = 41
@@ -81,7 +81,7 @@ class JumpTaskEnv(gym.Env):
   """
   def __init__(self, seed=42, scr_w=60, scr_h=60, floor_height=10,
               agent_w=5, agent_h=10, agent_init_pos=0, agent_speed=1,
-              obstacle_position=30, obstacle_size=(9, 10),
+              obstacle_position=15, obstacle_size=(9, 10),
               rendering=False, zoom=8, slow_motion=False, with_left_action=False,
               max_number_of_steps=100, two_obstacles=False, finish_jump=False):
 
@@ -182,6 +182,7 @@ class JumpTaskEnv(gym.Env):
     To be called at the beginning of each episode for training as in the paper.
     Sets the obstacle at one of six random positions.
     '''
+
     obstacle_position = self.np_random.choice(self.ALLOWED_OBSTACLE_X)
     floor_height = self.np_random.choice(ALLOWED_OBSTACLE_Y)
     return self._reset(obstacle_position, floor_height)
@@ -426,9 +427,9 @@ def test(args):
       for event in events:
         if event.type == pygame.KEYDOWN:
           if event.key == pygame.K_RIGHT:
-            action = 0
+            action = np.array([0,1])
           elif event.key == pygame.K_UP:
-            action = 1
+            action = np.array([1,0])
           elif event.key == pygame.K_LEFT and args.with_left_action:
             action = 2
           elif event.key == pygame.K_e:
@@ -468,7 +469,7 @@ if __name__ == '__main__':
                       help='initial x position of the agent(on the floor), defaults to the left of the screen')
   parser.add_argument('--agent_speed', type=int, default=1,
                       help='agent lateral speed, measured in pixels per time step, by default 1 pixel')
-  parser.add_argument('--obstacle_position', type=int, default=20,
+  parser.add_argument('--obstacle_position', type=int, default=15,
                       help='initial x position of the obstacle (on the floor), by default 0 pixels, which is the leftmost one')
   parser.add_argument('--obstacle_size', type=int, default=(9,10),
                       help='width and height of the obstacle, by default(9, 10)')
