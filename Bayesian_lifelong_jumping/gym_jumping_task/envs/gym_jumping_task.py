@@ -469,7 +469,7 @@ if __name__ == '__main__':
                       help='initial x position of the agent(on the floor), defaults to the left of the screen')
   parser.add_argument('--agent_speed', type=int, default=1,
                       help='agent lateral speed, measured in pixels per time step, by default 1 pixel')
-  parser.add_argument('--obstacle_position', type=int, default=15,
+  parser.add_argument('--obstacle_position', type=int, default=20,
                       help='initial x position of the obstacle (on the floor), by default 0 pixels, which is the leftmost one')
   parser.add_argument('--obstacle_size', type=int, default=(9,10),
                       help='width and height of the obstacle, by default(9, 10)')

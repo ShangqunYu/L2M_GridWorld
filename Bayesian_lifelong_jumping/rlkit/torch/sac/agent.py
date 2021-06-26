@@ -41,13 +41,13 @@ def _canonical_to_natural(mu, sigma_squared):
 
 
 class Agent(nn.Module):#context encoder -> action output (during training and sampling)
-#change plan_hor to 20 from 1 Simon?
+#change plan_hor to 20 from 1 Simon? change to 30 for now
     def __init__(self,
                  forward_dyna,
                  dyna,
                  action_dim,
                  per=1,
-                 plan_hor=20,
+                 plan_hor=30,
                  npart=20,
                  **kwargs
     ):
