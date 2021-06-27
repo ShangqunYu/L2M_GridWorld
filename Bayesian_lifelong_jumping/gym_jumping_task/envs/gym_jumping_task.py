@@ -81,7 +81,7 @@ class JumpTaskEnv(gym.Env):
   """
   def __init__(self, seed=42, scr_w=60, scr_h=60, floor_height=10,
               agent_w=5, agent_h=10, agent_init_pos=0, agent_speed=1,
-              obstacle_position=15, obstacle_size=(9, 10),
+              obstacle_position=20, obstacle_size=(9, 10),
               rendering=False, zoom=8, slow_motion=False, with_left_action=False,
               max_number_of_steps=100, two_obstacles=False, finish_jump=False):
 

@@ -32,8 +32,8 @@ training_steps = 2000000
 learning_rate = 0.0001
 # Initialize the model0
 
-
-model = DQN("CnnPolicy", env, learning_rate = learning_rate, exploration_final_eps = 0.05, verbose=1) #
+model = A2C("CnnPolicy", env, learning_rate = learning_rate, verbose=1)
+#model = DQN("CnnPolicy", env, learning_rate = learning_rate, exploration_final_eps = 0.05, verbose=1) #
 # Train the model
 model.learn(training_steps, eval_env=env, eval_freq= 10000, n_eval_episodes=10, eval_log_path = "log")
 

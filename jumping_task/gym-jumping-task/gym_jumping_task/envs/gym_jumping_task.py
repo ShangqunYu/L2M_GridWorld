@@ -28,7 +28,7 @@ GREYSCALE_GREY = 127
 # The jump shape is a `hat`:
 # - diagonal going up until the jump height
 # - then diagonal going down
-JUMP_HEIGHT =  17                  #15
+JUMP_HEIGHT =  15                  #15
 JUMP_VERTICAL_SPEED = 1
 JUMP_HORIZONTAL_SPEED = 1
 ###############################################
@@ -88,7 +88,8 @@ class JumpTaskEnv(gym.Env):
     # Initialize seed.
     self.seed(seed)
     #simon's code
-    print("hello!!!!")
+    print("jumping height", JUMP_HEIGHT )
+
     self.rewards = {'life': -1, 'exit': 1}
     self.scr_w = scr_w
     self.scr_h = scr_h
