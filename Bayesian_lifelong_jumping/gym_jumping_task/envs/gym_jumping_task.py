@@ -81,7 +81,7 @@ class JumpTaskEnv(gym.Env):
   """
   def __init__(self, seed=42, scr_w=60, scr_h=60, floor_height=10,
               agent_w=5, agent_h=10, agent_init_pos=0, agent_speed=1,
-              obstacle_position=20, obstacle_size=(9, 10),
+              obstacle_position=15, obstacle_size=(9, 10),
               rendering=False, zoom=8, slow_motion=False, with_left_action=False,
               max_number_of_steps=100, two_obstacles=False, finish_jump=False):
 
@@ -469,7 +469,7 @@ if __name__ == '__main__':
                       help='initial x position of the agent(on the floor), defaults to the left of the screen')
   parser.add_argument('--agent_speed', type=int, default=1,
                       help='agent lateral speed, measured in pixels per time step, by default 1 pixel')
-  parser.add_argument('--obstacle_position', type=int, default=20,
+  parser.add_argument('--obstacle_position', type=int, default=15,
                       help='initial x position of the obstacle (on the floor), by default 0 pixels, which is the leftmost one')
   parser.add_argument('--obstacle_size', type=int, default=(9,10),
                       help='width and height of the obstacle, by default(9, 10)')

@@ -16,7 +16,7 @@ class BNNdynamics(nn.Module):
         '_optim',
     ]
     def __init__(self, observation_size, action_size, device='cpu', reward_size=1, eta=0.1, lamb=0.01, update_iterations=500, learning_rate=0.0005,
-            hidden_layers=2, hidden_layer_size=100, D_KL_smooth_length=10, max_logvar=2, min_logvar=-9., deterministic=False, weight_out=0.1):
+            hidden_layers=2, hidden_layer_size=32, D_KL_smooth_length=10, max_logvar=2, min_logvar=-9., deterministic=False, weight_out=0.1):
         super().__init__()
 
         self._update_iterations = update_iterations
