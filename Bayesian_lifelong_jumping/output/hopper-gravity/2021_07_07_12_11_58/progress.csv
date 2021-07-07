@@ -1,0 +1,2 @@
+ELBO_task,loglikelihood_task,KL_loss_task,Pred_obs_loss_task,Pred_rew_loss_task,AverageReturn,Epoch,SampleStep
+-528810464.0,-528810460.0,3785.1533,371839.25,196.69319,126.8,4,5050

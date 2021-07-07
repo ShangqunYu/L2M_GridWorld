@@ -81,7 +81,7 @@ class JumpTaskEnv(gym.Env):
   """
   def __init__(self, seed=42, scr_w=60, scr_h=60, floor_height=10,
               agent_w=5, agent_h=10, agent_init_pos=0, agent_speed=1,
-              obstacle_position=15, obstacle_size=(9, 10),
+              obstacle_position=20, obstacle_size=(9, 10),
               rendering=False, zoom=8, slow_motion=False, with_left_action=False,
               max_number_of_steps=100, two_obstacles=False, finish_jump=False):
 
@@ -275,6 +275,7 @@ class JumpTaskEnv(gym.Env):
 
     return obs.T.reshape((60,60,1))
 
+
   def step(self, action):
     ''' Updates the game state based on the action selected.
     Returns the state as a greyscale numpy array, the reward obtained by the agent
@@ -283,8 +284,11 @@ class JumpTaskEnv(gym.Env):
 
     Args
       action: the action to be taken by the agent
+
     '''
+
     #Simon: if the agent is dead or won already, but hasn't reached to the end yet
+
     killed, exited = self._game_status()
     if self.step_id < self.max_number_of_steps and (killed or exited):
         self.step_id += 1
@@ -443,8 +447,8 @@ def test(args):
       continue
     obs, r, done, _ = env.step(action)
     env.render()
-    score += r
-    print(obs)
+    #score += r
+    print('obs:',obs,' reward:', r )
     #print('step: {}| Agent position: {:2d} | Reward: {:2d} | Terminal: {}'.format(step, env.agent_pos_x, r, done))
     step += 1
   print('---------------')
@@ -469,7 +473,7 @@ if __name__ == '__main__':
                       help='initial x position of the agent(on the floor), defaults to the left of the screen')
   parser.add_argument('--agent_speed', type=int, default=1,
                       help='agent lateral speed, measured in pixels per time step, by default 1 pixel')
-  parser.add_argument('--obstacle_position', type=int, default=15,
+  parser.add_argument('--obstacle_position', type=int, default=20,
                       help='initial x position of the obstacle (on the floor), by default 0 pixels, which is the leftmost one')
   parser.add_argument('--obstacle_size', type=int, default=(9,10),
                       help='width and height of the obstacle, by default(9, 10)')

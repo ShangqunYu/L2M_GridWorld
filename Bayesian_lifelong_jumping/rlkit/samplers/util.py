@@ -16,6 +16,18 @@ def save_prediction(data):
     #with open(filename, "w") as text_file:
         #text_file.write(str(data))
 
+def one_hot_reward(reward):
+    if reward == 0:
+        return 0
+    elif reward == 1:
+        return 1
+    elif reward == -1:
+        return 2
+    else:
+        raise ValueError(
+              'We did not recognize that reward. '
+              'the action we received is {}'.format(reward))
+
 def rollout(env, agent, env_idx, max_path_length=np.inf, planning=True,accum_context=True, resample_z=False, animated=False, save_frames=False):
     """
     The following value for the following keys will be a 2D array, with the
@@ -61,14 +73,15 @@ def rollout(env, agent, env_idx, max_path_length=np.inf, planning=True,accum_con
         a = agent.get_action(o, env_idx, planning=planning)
 
         #estimated reward and next state given by our model
-        #note! r_ is not next state, it is the different between the current state and next state
+        #note! s_ is not next state, it is the different between the current state and next state
+        #for checking purpose
 
         r_, s_, = agent.forw_dyna_set[env_idx].infer(torch.from_numpy(o).float().to(ptu.device)[None],torch.from_numpy(a).float().to(ptu.device)[None])
 
         next_o, r, d, env_info = env.step(a)
-        #print("obs:", next_o)
-        #print("vel:", env.env.env.sim.data.qvel.flat)
-        # print("pos:", env.env.env.sim.data.qpos.flat[1:])
+        #Simon: change the reward to type 0,tyep 1, or type 2
+        r = one_hot_reward(r)
+
         pred_no = s_.detach().cpu().numpy() + o
         pred_r = r_.detach().cpu().numpy()
         #print("pred_obs", pred_no)
@@ -101,8 +114,7 @@ def rollout(env, agent, env_idx, max_path_length=np.inf, planning=True,accum_con
         o = next_o
         if animated:
             env.render()
-    # print("r_pred_loss:", np.mean(r_los))
-    # print("no_pred_loss:", np.mean(o_los))
+
     save_prediction(prediction_data)
     actions = np.array(actions)
     if len(actions.shape) == 1:

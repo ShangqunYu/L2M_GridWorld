@@ -47,7 +47,7 @@ class Agent(nn.Module):#context encoder -> action output (during training and sa
                  dyna,
                  action_dim,
                  per=1,
-                 plan_hor=20,
+                 plan_hor=30,
                  npart=20,
                  **kwargs
     ):
@@ -87,6 +87,7 @@ class Agent(nn.Module):#context encoder -> action output (during training and sa
         """
 
         self.current_id = env_idx
+
         if not planning:
             #simon change to 1 hot action chocie
             return np.eye(2)[np.random.choice(2,1)].squeeze()
@@ -99,11 +100,9 @@ class Agent(nn.Module):#context encoder -> action output (during training and sa
             return action
 
         self.sy_cur_obs = obs
-        #t1 =time.time()
-        #breakpoint()
+
         soln = self.optimizer.obtain_solution(self.prev_sol, self.init_var)
-        #t2 = time.time()
-        #print("act:", t2-t1)
+
         self.prev_sol = np.concatenate([np.copy(soln)[self.per * self.dU:], np.zeros(self.per * self.dU)])
         self.ac_buf = soln[:self.per * self.dU].reshape(-1, self.dU)
 
@@ -112,8 +111,9 @@ class Agent(nn.Module):#context encoder -> action output (during training and sa
     @torch.no_grad()
     def _compile_cost(self, ac_seqs):
         #breakpoint()
+        #number of options
         nopt = ac_seqs.shape[0]
-
+        #put on GPU
         ac_seqs = torch.from_numpy(ac_seqs).float().to(ptu.device)
 
         # Reshape ac_seqs so that it's amenable to parallel compute
@@ -145,17 +145,10 @@ class Agent(nn.Module):#context encoder -> action output (during training and sa
             cur_acs = ac_seqs[t]
             proc_obs = cur_obs
             acs = cur_acs
-            # proc_obs = self._expand_to_ts_format(cur_obs)
-            # acs = self._expand_to_ts_format(cur_acs)
 
             rew, next_obs = self.forw_dyna_set[self.current_id].infer(proc_obs, acs)
 
-
             next_obs = proc_obs + next_obs
-
-            # rew = self._flatten_to_matrix(rew)
-            # next_obs = self._flatten_to_matrix(next_obs)
-            #
 
             rew = rew.view(-1, self.npart)
 

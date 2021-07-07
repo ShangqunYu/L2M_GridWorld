@@ -39,7 +39,7 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
             num_exp_traj_eval=1,
             update_post_train=1,
             num_updates_global=1500,
-            num_updates_task=5000,
+            num_updates_task=500,  #change to 500 first
             global_update_interval=300,
             before_train=5000,
             max_traj=10,
@@ -211,13 +211,12 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
             env_idx = env_id - 50
         else:
             env_idx = env_id
-        #t0 = time.time()
+
         paths, n_samples, info = self.sampler.obtain_samples(env_idx, max_samples=self.max_path_length,
                                                              max_trajs=self.max_traj, planning=self.start_train)
-        #t1 = time.time()
-        #print("t0:", t1-t0)
+
         self.task_step += n_samples
-    
+
         if not backward:
             self.replay_buffer.add_paths(env_idx, paths)
 
@@ -225,8 +224,8 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
 
             self.start_train = True
             self._do_training(env_idx, backward)
-            #t2 = time.time()
-            #print("t1:", t2-t1)
+            print('hello')
+
             if self.task_step // self.global_update_interval != self.update_global:
                 all_rets = []
                 online_returns = []

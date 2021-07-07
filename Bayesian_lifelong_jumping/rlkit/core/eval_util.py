@@ -40,7 +40,16 @@ def get_generic_path_information(paths, stat_prefix=''):
 
 
 def get_average_returns(paths):
-    returns = [sum(path["rewards"]) for path in paths]
+
+    returns = []
+    for path in paths:
+
+        batch_size = path["rewards"].shape[0]
+        reward_dict = np.repeat(np.array([[0,1,-1]]),batch_size,0)
+        reward_values = np.take_along_axis(reward_dict,path["rewards"].reshape(-1,1),1)
+        returns.append(sum(reward_values))
+
+
     return np.mean(returns)
 
 

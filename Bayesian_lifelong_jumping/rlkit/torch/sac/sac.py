@@ -152,6 +152,7 @@ class BayesianLifelongRL(MetaRLAlgorithm):
         # if self.new_task:
         #     self.agent.dyna.save_old_para()
 
+
         if self.task_step // self.global_update_interval != self.update_global:
             logger.push_prefix('Iteration #%d | ' % self.task_step)
 
@@ -174,13 +175,17 @@ class BayesianLifelongRL(MetaRLAlgorithm):
     def _take_step_task(self, env_idx):
 
         obs, actions, rewards, next_obs, terms = self.sample_data([env_idx], task=True)
+
         t, b, nok = obs.size()
+
 
         obs = obs.view(t * b, -1)
         actions = actions.view(t * b, -1)
         next_obs = next_obs.view(t * b, -1)
-        rewards_flat = rewards.view(t * b, -1)
-        rewards_flat = rewards_flat * self.reward_scale
+        #Simon: changed to crossentropyloss
+        rewards_flat = rewards.view(-1)
+        # getting rid of reward_scale for jumping task.
+        #rewards_flat = rewards_flat * self.reward_scale
         next_obs = next_obs - obs
         elbo, pred, kl, obs_loss, r_loss = self.agent.forw_dyna_set[env_idx].update_posterior(obs, actions, next_obs, rewards_flat, update_post=False, weight_kl=0.0001)
         self.update_step += 1

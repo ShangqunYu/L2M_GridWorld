@@ -15,8 +15,9 @@ class BNNdynamics(nn.Module):
         '_params_mu', '_params_rho',
         '_optim',
     ]
-    def __init__(self, observation_size, action_size, device='cpu', reward_size=1, eta=0.1, lamb=0.01, update_iterations=500, learning_rate=0.0005,
-            hidden_layers=2, hidden_layer_size=32, D_KL_smooth_length=10, max_logvar=2, min_logvar=-9., deterministic=False, weight_out=0.1):
+    #change reward size to 3, Simon: change hidden_layer_size to 64
+    def __init__(self, observation_size, action_size, device='cpu', reward_size=3, eta=0.1, lamb=0.01, update_iterations=500, learning_rate=0.0005,
+            hidden_layers=2, hidden_layer_size=64, D_KL_smooth_length=10, max_logvar=2, min_logvar=-9., deterministic=False, weight_out=0.1):
         super().__init__()
 
         self._update_iterations = update_iterations
@@ -57,19 +58,26 @@ class BNNdynamics(nn.Module):
         ---
         loss: (float)
         """
-        #t1 = time.time()
+
         batch_s = s.float().to(self._device)
         batch_a = a.float().to(self._device)
 
-        # self._dynamics_model.set_params(self._params_mu, self._params_rho)
-        #td1 = time.time()
         r_mean, r_var, no_mean, no_var = self._dynamics_model.infer(torch.cat([batch_s, batch_a], dim=1), share_paremeters_among_samples=False)
-        #td2 = time.time()
-        #print("td1:", td2-td1)
-        r_pred = r_mean + torch.randn_like(r_mean, device=self._device) * torch.sqrt(torch.exp(r_var))
+
+
+        z_pred = r_mean + torch.randn_like(r_mean, device=self._device) * torch.sqrt(torch.exp(r_var))
+        softmax_r_pred = nn.Softmax(dim=1)(z_pred)
+        r_pred = softmax_r_pred.argmax(1)
+        #Simon: from category prediction to real value of the reward
+        #type 0 reward has 0 value, type 1 has 1 value, type 2 has -1 value
+        batch_size = batch_s.shape[0]
+        reward_dict = torch.tensor([0, 1, -1], device = self._device)
+        reward_dict = reward_dict.repeat(batch_size, 1)
+        r_value_pred =  reward_dict.gather(1, r_pred.view(-1,1)).squeeze()
+
         no_pred = no_mean + torch.randn_like(no_mean, device=self._device) * torch.sqrt(torch.exp(no_var))
-        #print("next state:",no_pred)
-        return r_pred, no_pred
+
+        return r_value_pred, no_pred
 
     def save_old_para(self):
         self._dynamics_model.save_old_parameters()
@@ -83,7 +91,7 @@ class BNNdynamics(nn.Module):
         var_old = (1 + self._params_rho_old.exp()).log().pow(2)
         return .5 * (var_old.log() - var.log() + var / var_old + (self._params_mu-self._params_mu_old).pow(2) / var_old ).sum() - .5 * len(self._params_mu)
 
-
+    #current using this one.
     def _calc_div_kl(self):
         #TODO 0005 prior should be the previous posterior instead of the initial prior
         """Calculate D_{KL} [ q(\theta | \phi) || p(\theta) ]
@@ -129,16 +137,9 @@ class BNNdynamics(nn.Module):
         (-elbo).backward()
         self._optim.step()
 
-        # Check parameters
-        # assert not torch.isnan(self._params_mu).any() and not torch.isinf(self._params_mu).any(), self._params_mu
-        # assert not torch.isnan(self._params_rho).any() and not torch.isinf(self._params_rho).any(), self._params_rho
 
-        #tt3 = time.time()
-        #print("tt33:", tt3-tt22)
-        # update self._params
         self._dynamics_model.set_params(self._params_mu, self._params_rho)
-        #tt4 = time.time()
-        #print("tt3:",tt4-tt3)
+
         return elbo.item(), log_likelihood, div_kl, obs_loss, r_loss
 
     def state_dict(self):

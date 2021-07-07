@@ -123,7 +123,7 @@ class _BayesianLinerLayer(nn.Module):
 class BNN:
     def __init__(self, observation_size, action_size, reward_size, hidden_layers, hidden_layer_size, max_logvar, min_logvar, deterministic, weight_out=0.1, device='cpu'):
         self._input_size = observation_size + action_size
-        self._output_size1 = reward_size
+        self._output_size1 = reward_size    # changed to 3
         self._output_size2 = observation_size
         self._max_logvar = max_logvar
         self._min_logvar = min_logvar
@@ -184,7 +184,7 @@ class BNN:
             # t7 = time.time()
             # print("t6:", t7-t6)
             begin = end
-
+    #no need to change this function
     def infer(self, X, share_paremeters_among_samples=True):
         for layer in self._hidden_layers:
             X = F.elu(layer(X, share_paremeters_among_samples))
@@ -199,22 +199,32 @@ class BNN:
         logvar2 = torch.clamp(logvar2, min=self._min_logvar, max=self._max_logvar)
 
         return mean1, logvar1, mean2, logvar2
-
+     #
     def log_likelihood(self, input_batch, output_batch1, output_batch2):
         """Calculate an expectation of log likelihood.
         Mote Carlo approximation using a single parameter sample,
         i.e., E_{theta ~ q(* | phi)} [ log p(D | theta)] ~ log p(D | theta_1)
         """
         output_mean1, output_logvar1, output_mean2, output_logvar2 = self.infer(input_batch, share_paremeters_among_samples=True)
-
+         # need to add softmax,
         # log p(s_next)
         # = log N(output_batch | output_mean, exp(output_logvar))
         # = -\frac{1}{2} \sum^d_j [ logvar_j + (s_next_j - output_mean)^2 exp(- logvar_j) ]  - \frac{d}{2} \log (2\pi)
-        ll_1 = - .5 * (output_logvar1 + (output_batch1 - output_mean1).pow(2) * (- output_logvar1).exp()).sum(
-            dim=1) - .5 * self._output_size1 * np.log(2 * np.pi)
+
+        #need to change. use reparametrization first, torch.normal(output_mean1, torch.sqrt(torch.exp(output_logvar1)))
+
+        posteriors = [torch.distributions.normal.Normal(m, torch.sqrt(torch.exp(s)))
+                     for m, s in zip(torch.unbind(output_mean1),torch.unbind(output_logvar1))]
+        z = [d.rsample() for d in posteriors]
+        z = torch.stack(z)
+        reward_loss_fn = nn.CrossEntropyLoss()
+        #change target to long type which is required by nn.CrossEntropyLoss
+        output_batch1 = output_batch1.to(dtype=torch.long)
+        #simon: new loss for the reward prediction
+        ll_1 = reward_loss_fn(z,output_batch1)
         ll_2 = - .5 * (output_logvar2 + (output_batch2 - output_mean2).pow(2) * (- output_logvar2).exp()).sum(
             dim=1) - .5 * self._output_size2 * np.log(2 * np.pi)
         obs_loss = (output_batch2 - output_mean2).pow(2).sum(dim=1).mean()
-
-        r_loss = (output_batch1 - output_mean1).pow(2).sum(dim=1).mean()
-        return 10 * ll_1.mean() + ll_2.mean(), obs_loss, r_loss
+        #Simon: use ll_1 for now
+        r_loss = ll_1
+        return -10 * ll_1.mean() + ll_2.mean(), obs_loss, r_loss
