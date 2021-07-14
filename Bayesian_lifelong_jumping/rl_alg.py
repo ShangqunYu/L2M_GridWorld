@@ -94,7 +94,7 @@ class BNNdynamics(nn.Module):
             obs_value_pred = obs_dict_list[i].gather(1, obs_pred.view(-1,1))
             obs_value_pred_total.append(obs_value_pred)
         #for the last obs(block pose),no need to make pred sionce it will stay at the same position
-        obs_value_pred_total.append(torch.zeros_like(batch_s[:,4]).unsqueeze(1))
+        obs_value_pred_total.append(torch.zeros_like(batch_s[:,4],dtype = torch.long).unsqueeze(1))
         no_pred = torch.cat(obs_value_pred_total, 1).squeeze()
         #next x-axis
 
