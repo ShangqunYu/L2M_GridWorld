@@ -124,7 +124,16 @@ class BNN:
     def __init__(self, observation_size, action_size, reward_size, hidden_layers, hidden_layer_size, max_logvar, min_logvar, deterministic, weight_out=0.1, device='cpu'):
         self._input_size = observation_size + action_size
         self._output_size1 = reward_size    # changed to 3
-        self._output_size2 = observation_size
+        #Simon: Output dimension has changed significantly due to discretize obs with softmax
+        #self._output_size2 = observation_size
+        #Simon: agent's x axis delta pose, either move forward or stop
+        self._output_size2 = 2
+        #Simon: agent's y axis delta pose, either up down or stop
+        self._output_size3 = 3
+        #Simon: agent's velocity on the x axis
+        self._output_size4 = 2
+        #Simon: agent's velocity on the y axis
+        self._output_size5 = 3
         self._max_logvar = max_logvar
         self._min_logvar = min_logvar
 
@@ -138,8 +147,14 @@ class BNN:
             fan_in = hidden_layer_size
         self._out_layer1 = _BayesianLinerLayer(hidden_layer_size, self._output_size1 * 2, deterministic, device=device)
         self._out_layer2 = _BayesianLinerLayer(hidden_layer_size, self._output_size2 * 2, deterministic, device=device)
+        self._out_layer3 = _BayesianLinerLayer(hidden_layer_size, self._output_size3 * 2, deterministic, device=device)
+        self._out_layer4 = _BayesianLinerLayer(hidden_layer_size, self._output_size4 * 2, deterministic, device=device)
+        self._out_layer5 = _BayesianLinerLayer(hidden_layer_size, self._output_size5 * 2, deterministic, device=device)
         self._parameter_number += self._out_layer1.parameter_number
         self._parameter_number += self._out_layer2.parameter_number
+        self._parameter_number += self._out_layer3.parameter_number
+        self._parameter_number += self._out_layer4.parameter_number
+        self._parameter_number += self._out_layer5.parameter_number
         self._distributional_parameter_number = self._parameter_number * 2
 
     @property
@@ -155,17 +170,17 @@ class BNN:
     def get_parameters(self):
         """Return mu and rho as a tuple of vectors.
         """
-        params_mu, params_rho = zip(*[l.get_parameters() for l in self._hidden_layers + [self._out_layer1] + [self._out_layer2]])
+        params_mu, params_rho = zip(*[l.get_parameters() for l in self._hidden_layers + [self._out_layer1] + [self._out_layer2] + [self._out_layer3] + [self._out_layer4] + [self._out_layer5]])
         return torch.cat(params_mu), torch.cat(params_rho)
 
     def get_parameters_old(self):
         """Return mu and rho as a tuple of vectors.
         """
-        params_mu, params_rho = zip(*[l.get_parameters_old() for l in self._hidden_layers + [self._out_layer1] + [self._out_layer2]])
+        params_mu, params_rho = zip(*[l.get_parameters_old() for l in self._hidden_layers + [self._out_layer1] + [self._out_layer2]+ [self._out_layer3] + [self._out_layer4] + [self._out_layer5]])
         return torch.cat(params_mu), torch.cat(params_rho)
 
     def save_old_parameters(self):
-        for l in self._hidden_layers + [self._out_layer1] + [self._out_layer2]:
+        for l in self._hidden_layers + [self._out_layer1] + [self._out_layer2] + [self._out_layer3] + [self._out_layer4] + [self._out_layer5]:
             l.save_old_params()
 
     def set_params(self, params_mu, params_rho):
@@ -177,14 +192,14 @@ class BNN:
         #     self._parameter_number, params_rho.size())
 
         begin = 0
-        for l in self._hidden_layers + [self._out_layer1] + [self._out_layer2]:
+        for l in self._hidden_layers + [self._out_layer1] + [self._out_layer2] + [self._out_layer3] + [self._out_layer4] + [self._out_layer5]:
             end = begin + l.parameter_number
-            # t6 = time.time()
+
             l.set_parameters(params_mu[begin: end], params_rho[begin: end])
-            # t7 = time.time()
-            # print("t6:", t7-t6)
+
             begin = end
     #no need to change this function
+    #Now we have to change this function, since we have more output layer due to using softmax for obs
     def infer(self, X, share_paremeters_among_samples=True):
         for layer in self._hidden_layers:
             X = F.elu(layer(X, share_paremeters_among_samples))
@@ -192,20 +207,30 @@ class BNN:
 
         X1 = self._out_layer1(X, share_paremeters_among_samples)
         X2 = self._out_layer2(X, share_paremeters_among_samples)
+        X3 = self._out_layer3(X, share_paremeters_among_samples)
+        X4 = self._out_layer4(X, share_paremeters_among_samples)
+        X5 = self._out_layer5(X, share_paremeters_among_samples)
 
         mean1, logvar1 = X1[:, :self._output_size1], X1[:, self._output_size1:]
         logvar1 = torch.clamp(logvar1, min=self._min_logvar, max=self._max_logvar)
         mean2, logvar2 = X2[:, :self._output_size2], X2[:, self._output_size2:]
         logvar2 = torch.clamp(logvar2, min=self._min_logvar, max=self._max_logvar)
+        mean3, logvar3 = X3[:, :self._output_size3], X3[:, self._output_size3:]
+        logvar3 = torch.clamp(logvar3, min=self._min_logvar, max=self._max_logvar)
+        mean4, logvar4 = X4[:, :self._output_size4], X4[:, self._output_size4:]
+        logvar4 = torch.clamp(logvar4, min=self._min_logvar, max=self._max_logvar)
+        mean5, logvar5 = X5[:, :self._output_size5], X5[:, self._output_size5:]
+        logvar5 = torch.clamp(logvar5, min=self._min_logvar, max=self._max_logvar)
 
-        return mean1, logvar1, mean2, logvar2
+        return mean1, logvar1, [mean2, mean3, mean4, mean5], [logvar2, logvar3, logvar4, logvar5]
      #
     def log_likelihood(self, input_batch, output_batch1, output_batch2):
         """Calculate an expectation of log likelihood.
         Mote Carlo approximation using a single parameter sample,
         i.e., E_{theta ~ q(* | phi)} [ log p(D | theta)] ~ log p(D | theta_1)
         """
-        output_mean1, output_logvar1, output_mean2, output_logvar2 = self.infer(input_batch, share_paremeters_among_samples=True)
+
+        output_mean1, output_logvar1, output_mean_obs_total, output_logvar_obs_total= self.infer(input_batch, share_paremeters_among_samples=True)
          # need to add softmax,
         # log p(s_next)
         # = log N(output_batch | output_mean, exp(output_logvar))
@@ -222,9 +247,31 @@ class BNN:
         output_batch1 = output_batch1.to(dtype=torch.long)
         #simon: new loss for the reward prediction
         ll_1 = reward_loss_fn(z,output_batch1)
+        r_loss = ll_1
+        #Simon: need to change observation from value to category for
+        # position change on the y_axis and velocity change on the y_axis
+        output_batch2[:,1] += torch.ones(len(input_batch)).to(output_batch1.device)
+        output_batch2[:,3] += torch.ones(len(input_batch)).to(output_batch1.device)
+        total_obs_loss = 0
+
+        for i in range(4):
+            output_mean_obs, output_logvar_obs = output_mean_obs_total[i], output_logvar_obs_total[i]
+            output_batch_obs = output_batch2[:,i]
+
+            posteriors_obs = [torch.distributions.normal.Normal(m, torch.sqrt(torch.exp(s)))
+                         for m, s in zip(torch.unbind(output_mean_obs),torch.unbind(output_logvar_obs))]
+            z_obs = [d.rsample() for d in posteriors_obs]
+            z_obs = torch.stack(z_obs)
+            obs_loss_fn = nn.CrossEntropyLoss()
+            output_batch_obs = output_batch_obs.to(dtype=torch.long)
+
+            loss_obs = obs_loss_fn(z_obs, output_batch_obs)
+            total_obs_loss += loss_obs.mean()
+        '''
         ll_2 = - .5 * (output_logvar2 + (output_batch2 - output_mean2).pow(2) * (- output_logvar2).exp()).sum(
             dim=1) - .5 * self._output_size2 * np.log(2 * np.pi)
         obs_loss = (output_batch2 - output_mean2).pow(2).sum(dim=1).mean()
         #Simon: use ll_1 for now
-        r_loss = ll_1
-        return -10 * ll_1.mean() + ll_2.mean(), obs_loss, r_loss
+        '''
+        return -10 * ll_1.mean() - total_obs_loss, total_obs_loss, r_loss
+        #return -10 * ll_1.mean() + ll_2.mean(), obs_loss, r_loss

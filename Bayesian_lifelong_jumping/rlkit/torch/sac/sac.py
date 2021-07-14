@@ -186,7 +186,10 @@ class BayesianLifelongRL(MetaRLAlgorithm):
         rewards_flat = rewards.view(-1)
         # getting rid of reward_scale for jumping task.
         #rewards_flat = rewards_flat * self.reward_scale
+
         next_obs = next_obs - obs
+        #Simon: we need to change next_obs to 1 hot.
+
         elbo, pred, kl, obs_loss, r_loss = self.agent.forw_dyna_set[env_idx].update_posterior(obs, actions, next_obs, rewards_flat, update_post=False, weight_kl=0.0001)
         self.update_step += 1
         if self.eval_statistics is None:

@@ -46,7 +46,7 @@ class BNNdynamics(nn.Module):
     # def memorize_episodic_info_gains(self, info_gains: np.array):
     #
     #     self._prev_D_KL_medians.append(np.median(info_gains))
-
+    # try to infer the next state,
     def infer(self, s, a):
         """
         Params
@@ -62,20 +62,43 @@ class BNNdynamics(nn.Module):
         batch_s = s.float().to(self._device)
         batch_a = a.float().to(self._device)
 
-        r_mean, r_var, no_mean, no_var = self._dynamics_model.infer(torch.cat([batch_s, batch_a], dim=1), share_paremeters_among_samples=False)
+        r_mean, r_var, mean_obs_total, logvar_obs_total = self._dynamics_model.infer(torch.cat([batch_s, batch_a], dim=1), share_paremeters_among_samples=False)
 
-
+        #reward prediction
         z_pred = r_mean + torch.randn_like(r_mean, device=self._device) * torch.sqrt(torch.exp(r_var))
         softmax_r_pred = nn.Softmax(dim=1)(z_pred)
         r_pred = softmax_r_pred.argmax(1)
         #Simon: from category prediction to real value of the reward
         #type 0 reward has 0 value, type 1 has 1 value, type 2 has -1 value
         batch_size = batch_s.shape[0]
-        reward_dict = torch.tensor([0, 1, -1], device = self._device)
-        reward_dict = reward_dict.repeat(batch_size, 1)
+        reward_dict = torch.tensor([0, 1, -1], device = self._device).repeat(batch_size, 1)
         r_value_pred =  reward_dict.gather(1, r_pred.view(-1,1)).squeeze()
+        #observation prediction
 
-        no_pred = no_mean + torch.randn_like(no_mean, device=self._device) * torch.sqrt(torch.exp(no_var))
+        #position change on the x axis 0, 1
+        x_pose_dict = torch.tensor([0, 1], device = self._device).repeat(batch_size, 1)
+        #position change on the y axis -1, 0, 1
+        y_pose_dict = torch.tensor([-1, 0, 1], device = self._device).repeat(batch_size, 1)
+        #velocity change on the x axis 0, 1
+        x_v_dict = torch.tensor([0, 1], device = self._device).repeat(batch_size, 1)
+        #velocity change on the y axis -1, 0, 1
+        y_v_dict = torch.tensor([-1, 0, 1], device = self._device).repeat(batch_size, 1)
+        obs_dict_list = [x_pose_dict, y_pose_dict, x_v_dict, y_v_dict]
+        obs_value_pred_total = []
+
+        for i in range(len(mean_obs_total)):
+            mean_obs, logvar_obs = mean_obs_total[i],logvar_obs_total[i]
+            z_obs = mean_obs + torch.randn_like(mean_obs, device=self._device) * torch.sqrt(torch.exp(logvar_obs))
+            softmax_obs_pred = nn.Softmax(dim=1)(z_obs)
+            obs_pred = softmax_obs_pred.argmax(1)
+            obs_value_pred = obs_dict_list[i].gather(1, obs_pred.view(-1,1))
+            obs_value_pred_total.append(obs_value_pred)
+        #for the last obs(block pose),no need to make pred sionce it will stay at the same position
+        obs_value_pred_total.append(torch.zeros_like(batch_s[:,4]).unsqueeze(1))
+        no_pred = torch.cat(obs_value_pred_total, 1).squeeze()
+        #next x-axis
+
+        #no_pred = no_mean + torch.randn_like(no_mean, device=self._device) * torch.sqrt(torch.exp(no_var))
 
         return r_value_pred, no_pred
 

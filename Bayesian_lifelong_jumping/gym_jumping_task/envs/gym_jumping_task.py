@@ -81,7 +81,7 @@ class JumpTaskEnv(gym.Env):
   """
   def __init__(self, seed=42, scr_w=60, scr_h=60, floor_height=10,
               agent_w=5, agent_h=10, agent_init_pos=0, agent_speed=1,
-              obstacle_position=20, obstacle_size=(9, 10),
+              obstacle_position=15, obstacle_size=(9, 10),
               rendering=False, zoom=8, slow_motion=False, with_left_action=False,
               max_number_of_steps=100, two_obstacles=False, finish_jump=False):
 
@@ -232,9 +232,13 @@ class JumpTaskEnv(gym.Env):
         ''' returns low dim observation
         '''
         #whether it is jumping
+
         if self.jumping[0]:
           #if agent is above the jumping limit, it can only go down due to the gravity
-          if self.agent_pos_y > self.floor_height + JUMP_HEIGHT or self.jumping[1] == 'down':
+          #Simon: at the very top, the velocity on the y-axis should be zero, just like it is on the ground.
+          if self.agent_pos_y > self.floor_height + JUMP_HEIGHT:
+            vert_speed = 0
+          elif self.jumping[1] == 'down':
             vert_speed = -1
           else:
             vert_speed = 1
