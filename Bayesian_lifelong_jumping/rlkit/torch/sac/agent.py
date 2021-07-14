@@ -47,7 +47,7 @@ class Agent(nn.Module):#context encoder -> action output (during training and sa
                  dyna,
                  action_dim,
                  per=1,
-                 plan_hor=20,
+                 plan_hor=30,
                  npart=20,
                  **kwargs
     ):
